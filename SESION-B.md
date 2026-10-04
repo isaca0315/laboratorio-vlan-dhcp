@@ -49,6 +49,7 @@ router ospf 10                      ← proceso OSPF con ID local 10
 ! ---------- R1 ----------
 configure terminal
 router ospf 10
+ router-id 192.168.2.1
  network 192.168.2.0 0.0.0.255 area 0
  passive-interface GigabitEthernet0/0
 end
@@ -56,6 +57,7 @@ end
 ! ---------- R2 ----------
 configure terminal
 router ospf 10
+ router-id 192.168.2.17
  network 192.168.2.0 0.0.0.255 area 0
  passive-interface GigabitEthernet0/0
 end
@@ -63,6 +65,7 @@ end
 ! ---------- R3 ----------
 configure terminal
 router ospf 10
+ router-id 192.168.2.33
  network 192.168.2.0 0.0.0.255 area 0
  passive-interface GigabitEthernet0/0
 end
@@ -70,6 +73,11 @@ end
 
 `passive-interface` es buena práctica: en la LAN no hay ningún router vecino, así
 que enviar hellos allí solo consume ancho de banda.
+
+> **`router-id` importa.** Si no lo configuras, cada router elige uno solo: la IP
+> más alta de una interfaz activa (R1 = .58, R2 = .53, R3 = .57). Fijándolo a la
+> IP de su gateway (.1 / .17 / .33) el lab se vuelve **determinista** y lo que
+> veas en `show ip ospf neighbor` coincide con este material.
 
 ### Paso 2.4 — Quitar las rutas estáticas
 
@@ -112,8 +120,8 @@ show ip ospf neighbor
 R1#show ip ospf neighbor
 
 Neighbor ID     Pri   State       Dead Time   Address      Interface
-192.168.2.34      0   FULL/  -    00:00:37    192.168.2.57  GigabitEthernet0/2
-192.168.2.50      0   FULL/  -    00:00:35    192.168.2.50  GigabitEthernet0/1
+192.168.2.33      0   FULL/  -    00:00:37    192.168.2.57  GigabitEthernet0/2
+192.168.2.17      0   FULL/  -    00:00:35    192.168.2.50  GigabitEthernet0/1
 ```
 
 Ambos vecinos en **FULL** = vecindad establecida (estado `2-WAY` o `EXSTART`
@@ -137,7 +145,7 @@ show ip route
 R1#show ip route
 Codes: C - connected, S - static, O - OSPF, L - local
 
-      192.168.2.0/24 is variably subnetted, 6 subnets, 3 masks
+      192.168.2.0/24 is variably subnetted, 5 subnets, 3 masks
 C        192.168.2.0/28 is directly connected, GigabitEthernet0/0
 L        192.168.2.1/32 is directly connected, GigabitEthernet0/0
 C        192.168.2.48/30 is directly connected, GigabitEthernet0/1
@@ -244,7 +252,7 @@ show ip route
 
 ```text
 R1#show ip route
-      192.168.2.0/24 is variably subnetted, 6 subnets, 3 masks
+      192.168.2.0/24 is variably subnetted, 5 subnets, 3 masks
 C        192.168.2.0/28 is directly connected, GigabitEthernet0/0
 R        192.168.2.16/28 [120/1] via 192.168.2.50, 00:00:12
 R        192.168.2.32/28 [120/1] via 192.168.2.57, 00:00:12

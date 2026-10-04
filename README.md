@@ -39,20 +39,18 @@ demostrar la **redundancia** de OSPF apagando un enlace.
 ```text
    LAN-A  192.168.2.0/28        LAN-B  192.168.2.16/28       LAN-C  192.168.2.32/28
    GW .1                        GW .17                        GW .33
-   PC-A1 .6 · PC-A2 .7          PC-B1 .22 · PC-B2 .23         PC-C1 .38 · PC-C2 .39
-   PC-A3 .8                     PC-B3 .24                     PC-C3 .40
+   PCs .6 .7 .8                 PCs .22 .23 .24               PCs .38 .39 .40
         │                             │                            │
-       SW1                           SW2                          SW3
-        │ Fa0/1                       │ Fa0/1                      │ Fa0/1
+      SW1 Fa0/1                    SW2 Fa0/1                    SW3 Fa0/1
+        │                             │                            │
     R1 Gi0/0                      R2 Gi0/0                     R3 Gi0/0
-        │                             │                            │
-        └────── .49 ══ /30 ══ .50 ────┘                            │
-             enlace 1  (R1 Gi0/1 ↔ R2 Gi0/1)                        │
-                                                                     │
-   R3 Gi0/2 ══ .57 ══ /30 ══ .58 ══ R1 Gi0/2  enlace 3              │
-        │                                                             │
-        └────── .54 ══ /30 ══ .53 ───── R2 Gi0/2  enlace 2 ─────────┘
-              (R3 Gi0/1 ↔ R2 Gi0/2)
+
+  Los tres enlaces punto a punto NO salen de los switches: van directo de un
+  router a otro, cada uno en su propio par de puertos GigabitEthernet.
+
+  R1 Gi0/1 (.49) ════ enlace 1 ════ R2 Gi0/1 (.50)      192.168.2.48/30
+  R2 Gi0/2 (.53) ════ enlace 2 ════ R3 Gi0/1 (.54)      192.168.2.52/30
+  R3 Gi0/2 (.57) ════ enlace 3 ════ R1 Gi0/2 (.58)      192.168.2.56/30
 ```
 
 Resumen de los tres enlaces punto a punto (malla completa):
@@ -65,19 +63,32 @@ Resumen de los tres enlaces punto a punto (malla completa):
 
 ### Conexionado de interfaces
 
-| Cable (en Packet Tracer) | Desde | Hasta | Enlace |
-|--------------------------|-------|-------|--------|
-| Copper Straight-Through | `R1 Gi0/0` | `SW1 Fa0/1` | LAN-A |
-| Copper Straight-Through | `R2 Gi0/0` | `SW2 Fa0/1` | LAN-B |
-| Copper Straight-Through | `R3 Gi0/0` | `SW3 Fa0/1` | LAN-C |
-| Copper Straight-Through | `PC-A1/A2/A3 Fa0` | `SW1 Fa0/2-4` | LAN-A |
-| Copper Straight-Through | `PC-B1/B2/B3 Fa0` | `SW2 Fa0/2-4` | LAN-B |
-| Copper Straight-Through | `PC-C1/C2/C3 Fa0` | `SW3 Fa0/2-4` | LAN-C |
-| Copper Straight-Through | `R1 Gi0/1` | `R2 Gi0/1` | /30 · 48 |
-| Copper Straight-Through | `R2 Gi0/2` | `R3 Gi0/1` | /30 · 52 |
-| Copper Straight-Through | `R3 Gi0/2` | `R1 Gi0/2` | /30 · 56 |
+Los **15 cables** son todos *Copper Straight-Through*. Fíjate en que los
+cables 13-15 van **de un router al otro**, sin pasar por un switch:
 
-> **Variante con enlaces Serial** (opcional, para-practice): en los 2911 inserta
+| # | Cable | Desde | Hasta | Enlace / uso |
+|---|-------|-------|-------|--------------|
+| 1 | Copper Straight-Through | `R1 Gi0/0` | `SW1 Fa0/1` | LAN-A · gateway .1/28 |
+| 2 | Copper Straight-Through | `R2 Gi0/0` | `SW2 Fa0/1` | LAN-B · gateway .17/28 |
+| 3 | Copper Straight-Through | `R3 Gi0/0` | `SW3 Fa0/1` | LAN-C · gateway .33/28 |
+| 4 | Copper Straight-Through | `PC-A1 Fa0` | `SW1 Fa0/2` | LAN-A |
+| 5 | Copper Straight-Through | `PC-A2 Fa0` | `SW1 Fa0/3` | LAN-A |
+| 6 | Copper Straight-Through | `PC-A3 Fa0` | `SW1 Fa0/4` | LAN-A |
+| 7 | Copper Straight-Through | `PC-B1 Fa0` | `SW2 Fa0/2` | LAN-B |
+| 8 | Copper Straight-Through | `PC-B2 Fa0` | `SW2 Fa0/3` | LAN-B |
+| 9 | Copper Straight-Through | `PC-B3 Fa0` | `SW2 Fa0/4` | LAN-B |
+| 10 | Copper Straight-Through | `PC-C1 Fa0` | `SW3 Fa0/2` | LAN-C |
+| 11 | Copper Straight-Through | `PC-C2 Fa0` | `SW3 Fa0/3` | LAN-C |
+| 12 | Copper Straight-Through | `PC-C3 Fa0` | `SW3 Fa0/4` | LAN-C |
+| 13 | Copper Straight-Through | `R1 Gi0/1` | `R2 Gi0/1` | enlace 1 · 192.168.2.48/30 · .49 ↔ .50 |
+| 14 | Copper Straight-Through | `R2 Gi0/2` | `R3 Gi0/1` | enlace 2 · 192.168.2.52/30 · .53 ↔ .54 |
+| 15 | Copper Straight-Through | `R3 Gi0/2` | `R1 Gi0/2` | enlace 3 · 192.168.2.56/30 · .57 ↔ .58 |
+
+> Al cablear de router a router, Packet Tracer te deja elegir el tipo de cable.
+> Elige **Copper Straight-Through**. (Crossover también funcionaría: las Gi del
+> 2911 negocian auto-MDIX.)
+
+> **Variante con enlaces Serial** (opcional, para practicar): en los 2911 inserta
 > el módulo `HWIC-2T` (HWIC-2T aparece al apagar el router) y usa `S0/0/0` en
 > cada router con cable **Serial DCE**. El lado DCE lleva `clock rate 64000`. El
 > resto de la configuración es idéntica; solo cambian los nombres de interfaz.

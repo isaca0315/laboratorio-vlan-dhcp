@@ -20,19 +20,54 @@ Arrastra al área de trabajo:
 
 ### Paso 1.2 — Cablear
 
-1. **LANs** (cobre recto): `R? Gi0/0 → SW? Fa0/1` y `SW? Fa0/2,3,4 → PC Fa0`.
-2. **Enlaces entre routers** (cobre recto, malla):
-   - `R1 Gi0/1 ↔ R2 Gi0/1`
-   - `R2 Gi0/2 ↔ R3 Gi0/1`
-   - `R3 Gi0/2 ↔ R1 Gi0/2`
+Los **15 cables** son *Copper Straight-Through*. Con la topología ya colocada,
+hazlos en este orden (puerto exacto, no "el que esté libre"):
 
-Todos los puertos deben quedar en **verde** (up/up). Si un cable sale en rojo o
-naranja, es un enlace mal conectado.
+**a) Gateways a los switches** (3 cables)
+
+| Desde | Hasta |
+|-------|-------|
+| `R1 Gi0/0` | `SW1 Fa0/1` |
+| `R2 Gi0/0` | `SW2 Fa0/1` |
+| `R3 Gi0/0` | `SW3 Fa0/1` |
+
+**b) Los 9 PCs a su switch** (9 cables)
+
+| Desde | Hasta | | Desde | Hasta | | Desde | Hasta |
+|-------|-------|---|-------|-------|---|-------|-------|
+| `PC-A1 Fa0` | `SW1 Fa0/2` | | `PC-B1 Fa0` | `SW2 Fa0/2` | | `PC-C1 Fa0` | `SW3 Fa0/2` |
+| `PC-A2 Fa0` | `SW1 Fa0/3` | | `PC-B2 Fa0` | `SW2 Fa0/3` | | `PC-C2 Fa0` | `SW3 Fa0/3` |
+| `PC-A3 Fa0` | `SW1 Fa0/4` | | `PC-B3 Fa0` | `SW2 Fa0/4` | | `PC-C3 Fa0` | `SW3 Fa0/4` |
+
+**c) Los 3 enlaces entre routers** (3 cables)
+
+Van **directo de un router al otro**, sin switch de por medio:
+
+| Desde | Hasta | Subred |
+|-------|-------|--------|
+| `R1 Gi0/1` | `R2 Gi0/1` | 192.168.2.48/30 |
+| `R2 Gi0/2` | `R3 Gi0/1` | 192.168.2.52/30 |
+| `R3 Gi0/2` | `R1 Gi0/2` | 192.168.2.56/30 |
+
+Cuando PT te pregunte el tipo de cable al unir dos routers, elige **Copper
+Straight-Through** (crossover también valdría: las Gi del 2911 negocian auto-MDIX).
 
 ### Paso 1.3 — Comprobación rápida antes de configurar
 
-Encuende un `Show Connection` en la parte superior de la ventana: cada cable debe
-mostrar **Device / Port** en ambos extremos (no debe decir "Connection" vacío).
+> **No esperes luces verdes todavía.** En Packet Tracer las interfaces Gi del 2911
+> nacen *administrativamente shutdown*: los cables se ven **rojos** aunque estén
+> bien conectados. Las Gi solo pasan a verde cuando ejecutes `no shutdown` en la
+> Parte 3. Si las pones en verde ahora, es porque el router ya traía configuración.
+
+Lo que sí comprueba en este punto es el **cableado**, no las luces:
+
+1. Pasa el cursor por cada cable: debe mostrar **Device / Port** en los dos
+   extremos (nunca "Connection" vacío).
+2. Cada router debe tener **3 cables**: uno en `Gi0/0`, uno en `Gi0/1` y uno en
+   `Gi0/2`.
+3. Cada switch debe tener **4 cables**: `Fa0/1` (router) y `Fa0/2-4` (los 3 PCs).
+
+Con eso la Parte 3 puede levantar los puertos y todos deben quedar en verde.
 
 ## Parte 2 — Cálculo del VLSM (completar a mano)
 
@@ -417,16 +452,21 @@ Codes: L - local, C - connected, S - static, O - OSPF
 
 Gateway of last resort is not set
 
-      192.168.2.0/24 is variably subnetted, 6 subnets, 3 masks
+      192.168.2.0/24 is variably subnetted, 5 subnets, 3 masks
 C        192.168.2.0/28 is directly connected, GigabitEthernet0/0
 L        192.168.2.1/32 is directly connected, GigabitEthernet0/0
 C        192.168.2.48/30 is directly connected, GigabitEthernet0/1
 L        192.168.2.49/32 is directly connected, GigabitEthernet0/1
 C        192.168.2.56/30 is directly connected, GigabitEthernet0/2
-L        192.168.2.57/32 is directly connected, GigabitEthernet0/2
+L        192.168.2.58/32 is directly connected, GigabitEthernet0/2
 S        192.168.2.16/28 [1/0] via 192.168.2.50
 S        192.168.2.32/28 [1/0] via 192.168.2.57
 ```
+
+> El encabezado `5 subnets, 3 masks` cuenta las 5 redes con entrada propia
+> (3 `C` + 2 `S`); las 3 rutas locales `L` son /32. Packet Tracer puede mostrar
+> un conteo levemente distinto según la versión de IOS: lo que no puede cambiar
+> son las 8 líneas de la tabla.
 
 Interpretación: `C` = connected (las 3 LANs/enlaces con IP propia), `L` = local
 (dirección de la interfaz), `S` = static (las 2 que escribimos a mano).

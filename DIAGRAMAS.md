@@ -131,8 +131,8 @@ flowchart LR
   R1 --- EXC
 
   PC -->|"ipconfig /renew"| OK["IP 192.168.2.6/28<br/>GW 192.168.2.1<br/>DNS 8.8.8.8"]
-  FALLA["Si no hay respuesta<br/>queda en 169.254.x.x<br/>revisar Gi0/0 y el pool"]
-  OK -.->|"sin respuesta DORA"| FALLA
+  FALLA["Sin respuesta de R1<br/>queda en 169.254.x.x<br/>revisar Gi0/0 y el pool"]
+  PC -.->|"ipconfig /renew sin OFFER"| FALLA
 
   classDef router fill:#dbeafe,stroke:#1d4ed8,stroke-width:2px,color:#0b2559
   classDef pc fill:#fef9c3,stroke:#a16207,color:#422006
@@ -175,9 +175,9 @@ algoritmo SPF. Con un enlace caído, el camino se recalcula solo.
 
 ```mermaid
 flowchart LR
-  R1(["R1<br/>router ospf 10<br/>ID 192.168.2.34"])
-  R2(["R2<br/>router ospf 10<br/>ID 192.168.2.50"])
-  R3(["R3<br/>router ospf 10<br/>ID 192.168.2.66"])
+  R1(["R1<br/>router ospf 10<br/>ID 192.168.2.1"])
+  R2(["R2<br/>router ospf 10<br/>ID 192.168.2.17"])
+  R3(["R3<br/>router ospf 10<br/>ID 192.168.2.33"])
 
   R1 <-->|"Hello cada 10 s<br/>Gi0/1 .49 ↔ .50"| R2
   R2 <-->|"Hello cada 10 s<br/>Gi0/2 .53 ↔ .54"| R3
