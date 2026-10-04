@@ -17,6 +17,7 @@ con comandos de diagnóstico.
 - Cisco Packet Tracer (cuenta de estudiante Cisco NetAcad).
 - Este instructivo (`README.md`, `SESION-A.md`, `SESION-B.md`).
 - CLI de los tres routers en `config/` (copiar y pegar).
+- Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
 
 ## Cómo se trabaja esta sesión
 
@@ -26,6 +27,10 @@ con comandos de diagnóstico.
 | **Sesión B** — Enrutamiento dinámico y diagnóstico | Quitar las estáticas (1), configurar OSPF área 0 (2), alternativa RIPv2 (3), verificar con `show ip route`/`show ip ospf neighbor` (4) y diagnosticar fallas (5). | `show ip route` con rutas `O`, `show ip ospf neighbor` en FULL y pings OK **con un enlace caído**. | [Sesión B](SESION-B.md) |
 
 ## Topología
+
+> **Diagramas listos para draw.io:** topología, enlaces VLSM, flujo DHCP,
+> recorrido de un paquete y convergencia OSPF en [`DIAGRAMAS.md`](DIAGRAMAS.md)
+> (insertar con *Arrange > Insert > Mermaid*).
 
 Malla (full mesh) de 3 routers: cada router se enlaza con los otros dos. Así el
 tráfico entre sedes tiene **dos caminos posibles** y, en la Fase B, se puede
