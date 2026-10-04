@@ -18,6 +18,7 @@ con comandos de diagnóstico.
 - Este instructivo (`README.md`, `SESION-A.md`, `SESION-B.md`).
 - CLI de los tres routers en `config/` (copiar y pegar).
 - Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
+- Cálculo de subneteo VLSM en [`SUBNETEO.md`](SUBNETEO.md).
 
 ## Cómo se trabaja esta sesión
 
@@ -95,6 +96,10 @@ cables 13-15 van **de un router al otro**, sin pasar por un switch:
 
 ## Subneteo VLSM paso a paso
 
+> El desarrollo completo del cálculo (por qué `/28` y no `/29`, cómo se alinean
+> los bloques, los errores típicos y 6 ejercicios con respuestas) está en
+> [`SUBNETEO.md`](SUBNETEO.md). Aquí solo va el resumen.
+
 ### 1. Necesidades y prefijo mínimo
 
 | Requisito | Hosts mínimos | Prefijo elegido | Máscara | Total dir. | Hosts útiles | Desperdicio |
@@ -102,7 +107,7 @@ cables 13-15 van **de un router al otro**, sin pasar por un switch:
 | LAN-A | 10 | `/28` | 255.255.255.240 | 16 | 14 | 4 |
 | LAN-B | 10 | `/28` | 255.255.255.240 | 16 | 14 | 4 |
 | LAN-C | 10 | `/28` | 255.255.255.240 | 16 | 14 | 4 |
-| Enlace P2P | 2 | `/30` | 255.255.255.252 | 4 | 2 | 2 |
+| Enlace P2P | 2 | `/30` | 255.255.255.252 | 4 | 2 | 0 |
 
 Cálculo del prefijo LAN: `2^h − 2 ≥ 10` → `h = 4` → `/28` (es el prefijo **más
 eficiente** que cumple; un `/29` daría solo 6 hosts y un `/27` desperdiciaría 18).
