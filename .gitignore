@@ -1,0 +1,11 @@
+# Archivos de Packet Tracer
+*.pkt
+*.pktb
+
+# Backups de configuracion de Packet Tracer
+*-backup.cfg
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+*.swp

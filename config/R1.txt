@@ -1,0 +1,101 @@
+! =====================================================================
+! R1 - SEDE A (LAN-A 192.168.2.0/28)
+! Laboratorio 13 - VLSM + DHCP + Enrutamiento
+! Pegar en la CLI del router: modo exec -> enable -> configure terminal
+! (o pegar directo desde el prompt R1>)
+! =====================================================================
+
+enable
+configure terminal
+!
+! --- Identificacion del equipo ---
+hostname R1-SEDE-A
+no ip domain-lookup
+enable secret cisco
+service password-encryption
+!
+banner motd @ R1-SEDE-A - Laboratorio 13 VLSM/DHCP/OSPF @
+
+! --- Lineas de acceso ---
+line console 0
+ password cisco
+ logging synchronous
+line vty 0 4
+ password cisco
+ login
+ transport input ssh
+!
+! --- Interfaz LAN-A (gateway de la sede) ---
+interface GigabitEthernet0/0
+ description LAN-A - Gateway 192.168.2.1/28
+ ip address 192.168.2.1 255.255.255.240
+ no shutdown
+!
+! --- Enlace punto a punto con R2 ---
+interface GigabitEthernet0/1
+ description P2P R1-R2 - Red 192.168.2.48/30
+ ip address 192.168.2.49 255.255.255.252
+ no shutdown
+!
+! --- Enlace punto a punto con R3 ---
+interface GigabitEthernet0/2
+ description P2P R1-R3 - Red 192.168.2.56/30
+ ip address 192.168.2.58 255.255.255.252
+ no shutdown
+!
+! =========================================================
+! DHCP SERVER para LAN-A
+! Excluidas: .1 (gateway) y .2-.5 (IP fija administrativa)
+! Pool asignable: 192.168.2.6 - 192.168.2.14
+! =========================================================
+ip dhcp excluded-address 192.168.2.1 192.168.2.5
+!
+ip dhcp pool LAN-A
+ network 192.168.2.0 255.255.255.240
+ default-router 192.168.2.1
+ dns-server 8.8.8.8 1.1.1.1
+ domain-name lab-utp.pa
+ lease 1
+exit
+!
+! =========================================================
+! FASE A - ENRUTAMIENTO ESTATICO
+! LAN-B (.16/28) via R2 (.50) | LAN-C (.32/28) via R3 (.58)
+! =========================================================
+ip route 192.168.2.16 255.255.255.240 192.168.2.50
+ip route 192.168.2.32 255.255.255.240 192.168.2.57
+!
+! =========================================================
+! FASE B - OSPF AREA 0 (desactivar la Fase A antes)
+! =========================================================
+! router ospf 10
+!  network 192.168.2.0 0.0.0.255 area 0
+!  passive-interface GigabitEthernet0/0
+!  no ip route 192.168.2.16 255.255.255.240 192.168.2.50
+!  no ip route 192.168.2.32 255.255.255.240 192.168.2.57
+!
+! =========================================================
+! FASE B (alternativa) - RIPv2
+! =========================================================
+! no router ospf 10
+! router rip
+!  version 2
+!  no auto-summary
+!  network 192.168.2.0
+!
+end
+copy running-config startup-config
+
+! =========================================================
+! VERIFICACIONES
+! =========================================================
+! show ip interface brief
+! show ip dhcp pool
+! show ip dhcp binding
+! show ip route
+! show ip route static
+! show ip ospf neighbor
+! show ip protocols
+! ping 192.168.2.22
+! ping 192.168.2.38
+! traceroute 192.168.2.38

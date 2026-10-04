@@ -1,0 +1,512 @@
+# Sesión A — Topología, VLSM, DHCP y rutas estáticas
+
+Laboratorio N.º 13 · Unidad III · **Cisco Packet Tracer**
+
+Objetivo: montar la red de 3 sedes, calcular el VLSM, configurar cada router
+como servidor DHCP de su LAN y terminar con enrutamiento **estático** entre las
+tres sedes.
+
+## Parte 1 — Montar la topología
+
+### Paso 1.1 — Colocar los dispositivos
+
+Arrastra al área de trabajo:
+
+| Cant. | Dispositivo | Nombre en Packet Tracer |
+|-------|-------------|-------------------------|
+| 3 | `Router 2911` | R1, R2, R3 |
+| 3 | `Switch 2960` | SW1, SW2, SW3 |
+| 9 | `PC-PT` | PC-A1…PC-A3, PC-B1…PC-B3, PC-C1…PC-C3 |
+
+### Paso 1.2 — Cablear
+
+1. **LANs** (cobre recto): `R? Gi0/0 → SW? Fa0/1` y `SW? Fa0/2,3,4 → PC Fa0`.
+2. **Enlaces entre routers** (cobre recto, malla):
+   - `R1 Gi0/1 ↔ R2 Gi0/1`
+   - `R2 Gi0/2 ↔ R3 Gi0/1`
+   - `R3 Gi0/2 ↔ R1 Gi0/2`
+
+Todos los puertos deben quedar en **verde** (up/up). Si un cable sale en rojo o
+naranja, es un enlace mal conectado.
+
+### Paso 1.3 — Comprobación rápida antes de configurar
+
+Encuende un `Show Connection` en la parte superior de la ventana: cada cable debe
+mostrar **Device / Port** en ambos extremos (no debe decir "Connection" vacío).
+
+## Parte 2 — Cálculo del VLSM (completar a mano)
+
+Resuelve antes de configurar, para justificar cada comando que escribas después.
+
+### Paso 2.1 — Prefijo mínimo para ≥10 hosts
+
+`hosts útiles = 2^h − 2` → para 10 hosts: `2^4 − 2 = 14` → **h = 4** → prefijo
+`32 − 4 = /28` (máscara `255.255.255.240`, bloque de 16).
+
+Para los enlaces P2P se necesitan 2 hosts: `2^2 − 2 = 2` → h = 2 → **/30**
+(máscara `255.255.255.252`, bloque de 4).
+
+### Paso 2.2 — Reparto dentro de 192.168.2.0/24
+
+Asigna **de mayor a menor** y sempre en múltiplos del bloque:
+
+| # | Subred | Prefijo | Red | Rango usable | Broadcast | Uso |
+|---|--------|---------|-----|--------------|-----------|-----|
+| 1 | 192.168.2.0/28 | /28 | .0 | .1 – .14 | .15 | LAN-A |
+| 2 | 192.168.2.16/28 | /28 | .16 | .17 – .30 | .31 | LAN-B |
+| 3 | 192.168.2.32/28 | /28 | .32 | .33 – .46 | .47 | LAN-C |
+| 4 | 192.168.2.48/30 | /30 | .48 | .49 – .50 | .51 | R1–R2 |
+| 5 | 192.168.2.52/30 | /30 | .52 | .53 – .54 | .55 | R2–R3 |
+| 6 | 192.168.2.56/30 | /30 | .56 | .57 – .58 | .59 | R3–R1 |
+| — | .60 – .255 | — | — | — | — | libre (196 dir.) |
+
+**Verificación del cálculo:** `16 × 3 + 4 × 3 = 60` direcciones usadas; el bloque
+siguiente empezaría en `.60`, que es múltiplo de 16 y de 4 → asignación válida.
+
+## Parte 3 — Configurar los 3 routers
+
+> Los comandos completos de los tres routers están en `config/R1.txt`,
+> `config/R2.txt` y `config/R3.txt`. Puedes copiarlos y pegarlos en la CLI del
+> router (`clic derecho → Paste`) o escribirlos a mano.
+
+### Paso 3.1 — R1 (Sede A / LAN-A)
+
+```text
+enable
+configure terminal
+hostname R1-SEDE-A
+no ip domain-lookup
+enable secret cisco
+line console 0
+ password cisco
+ logging synchronous
+line vty 0 4
+ password cisco
+ login
+!
+interface GigabitEthernet0/0
+ description LAN-A - Gateway 192.168.2.1
+ ip address 192.168.2.1 255.255.255.240
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description Enlace P2P a R2 (192.168.2.48/30)
+ ip address 192.168.2.49 255.255.255.252
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description Enlace P2P a R3 (192.168.2.56/30)
+ ip address 192.168.2.58 255.255.255.252
+ no shutdown
+!
+end
+copy running-config startup-config
+```
+
+**Punto clave:** `no shutdown` es obligatorio. Las interfaces Gig0/0-Gig0/2 de un
+2911 salen apagadas por defecto.
+
+### Paso 3.2 — R2 (Sede B / LAN-B)
+
+```text
+enable
+configure terminal
+hostname R2-SEDE-B
+no ip domain-lookup
+enable secret cisco
+line console 0
+ password cisco
+ logging synchronous
+line vty 0 4
+ password cisco
+ login
+!
+interface GigabitEthernet0/0
+ description LAN-B - Gateway 192.168.2.17
+ ip address 192.168.2.17 255.255.255.240
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description Enlace P2P a R1 (192.168.2.48/30)
+ ip address 192.168.2.50 255.255.255.252
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description Enlace P2P a R3 (192.168.2.52/30)
+ ip address 192.168.2.53 255.255.255.252
+ no shutdown
+!
+end
+copy running-config startup-config
+```
+
+### Paso 3.3 — R3 (Sede C / LAN-C)
+
+```text
+enable
+configure terminal
+hostname R3-SEDE-C
+no ip domain-lookup
+enable secret cisco
+line console 0
+ password cisco
+ logging synchronous
+line vty 0 4
+ password cisco
+ login
+!
+interface GigabitEthernet0/0
+ description LAN-C - Gateway 192.168.2.33
+ ip address 192.168.2.33 255.255.255.240
+ no shutdown
+!
+interface GigabitEthernet0/1
+ description Enlace P2P a R2 (192.168.2.52/30)
+ ip address 192.168.2.54 255.255.255.252
+ no shutdown
+!
+interface GigabitEthernet0/2
+ description Enlace P2P a R1 (192.168.2.56/30)
+ ip address 192.168.2.57 255.255.255.252
+ no shutdown
+!
+end
+copy running-config startup-config
+```
+
+### Paso 3.4 — Verificar las interfaces
+
+```text
+show ip interface brief
+```
+
+Esperado (interfaz = `up`/`up` y todas con IP):
+
+```text
+R1#show ip interface brief
+Interface              IP-Address      OK? Method Status                Protocol
+GigabitEthernet0/0     192.168.2.1     YES NVRAM  up                    up
+GigabitEthernet0/1     192.168.2.49    YES NVRAM  up                    up
+GigabitEthernet0/2     192.168.2.58    YES NVRAM  up                    up
+```
+
+## Parte 4 — DHCP: cada router sirve su propia LAN
+
+### Paso 4.1 — Regla de oro
+
+En el pool se **excluye**:
+
+1. La **IP de la interfaz LAN** del router (es el gateway).
+2. Las **IPs fijas administrativas** (servidor, impresora, AP, NVR, etc.).
+
+Si el gateway quedara dentro del pool, un PC podría recibir `192.168.2.1` como IP
+propia y la LAN quedaría aislada.
+
+### Paso 4.2 — R1
+
+```text
+configure terminal
+ip dhcp excluded-address 192.168.2.1 192.168.2.5
+!
+ip dhcp pool LAN-A
+ network 192.168.2.0 255.255.255.240
+ default-router 192.168.2.1
+ dns-server 8.8.8.8 1.1.1.1
+ domain-name lab-utp.pa
+ lease 1
+exit
+end
+copy running-config startup-config
+```
+
+### Paso 4.3 — R2
+
+```text
+configure terminal
+ip dhcp excluded-address 192.168.2.17 192.168.2.21
+!
+ip dhcp pool LAN-B
+ network 192.168.2.16 255.255.255.240
+ default-router 192.168.2.17
+ dns-server 8.8.8.8 1.1.1.1
+ domain-name lab-utp.pa
+ lease 1
+exit
+end
+copy running-config startup-config
+```
+
+### Paso 4.4 — R3
+
+```text
+configure terminal
+ip dhcp excluded-address 192.168.2.33 192.168.2.37
+!
+ip dhcp pool LAN-C
+ network 192.168.2.32 255.255.255.240
+ default-router 192.168.2.33
+ dns-server 8.8.8.8 1.1.1.1
+ domain-name lab-utp.pa
+ lease 1
+exit
+end
+copy running-config startup-config
+```
+
+### Paso 4.5 — Qué significa cada parámetro
+
+| Comando | Significado |
+|---------|-------------|
+| `ip dhcp excluded-address A B` | Rango **reservado** que nunca se entrega (gateway + admin) |
+| `network 192.168.2.0 255.255.255.240` | Subred del pool (se escriben red + máscara) |
+| `default-router 192.168.2.1` | Gateway que se le entrega al PC |
+| `dns-server 8.8.8.8 1.1.1.1` | Servidores DNS (Google / Quad9) |
+| `domain-name lab-utp.pa` | Nombre de dominio que se envía en la opción 15 |
+| `lease 1` | Duración del alquiler en **días** |
+
+### Paso 4.6 — Verificar el pool en el router
+
+```text
+show ip dhcp pool
+```
+
+```text
+R1#show ip dhcp pool
+IP Pool: LAN-A
+
+Network:
+  Network 192.168.2.0/28
+  Netmask 255.255.255.240
+
+Domain-Name: lab-utp.pa
+
+Default Routers: 192.168.2.1
+DNS Servers: 8.8.8.8  1.1.1.1
+```
+
+También sirve para detectar un error típico: si `Network:` aparece con una máscara
+distinta a la de tu LAN, el DHCP no назнаará IPs útiles.
+
+## Parte 5 — Verificar el DHCP en los PCs
+
+### Paso 5.1 — Poner los 9 PCs en DHCP
+
+En cada PC: `Desktop → IP Configuration → DHCP → Refresh` (o escribe
+`ipconfig /release` y luego `ipconfig /renew` en el `Command Prompt`).
+
+### Paso 5.2 — Comandos en el PC
+
+```text
+ipconfig /renew
+ipconfig /all
+```
+
+Esperado en PC-A1:
+
+```text
+C:\>ipconfig /all
+
+Ethernet Adapter FastEthernet0:
+
+   Connection-specific DNS Suffix  . lab-utp.pa
+   IPv4 Address. . . . . . . . . . : 192.168.2.6
+   Subnet Mask . . . . . . . . . . : 255.255.255.240
+   Default Gateway . . . . . . . . : 192.168.2.1
+   DHCP Server . . . . . . . . . . : 192.168.2.1
+   Lease Obtained . . . . . . . . . : Wednesday, October 2, 2026 10:00 AM
+   Lease Expires . . . . . . . . . . : Thursday, October 3, 2026 10:00 AM
+```
+
+Comprueba los 3 campos críticos: **IP dentro del rango asignable**, **máscara
+/28** y **gateway = interfaz LAN del router**.
+
+### Paso 5.3 — Confirmar el enlace DHCP desde el router
+
+```text
+show ip dhcp binding
+```
+
+```text
+R1#show ip dhcp binding
+IP address       Client-ID/          Lease type   Hardware address   Lease expiration
+                  Lease type
+192.168.2.6      0001.0A6A.0A6A      arp          000C.29A6.0A6A    Oct  3 10:00:00 2026
+192.168.2.7      0001.0A6A.0A6A      arp          000C.29A6.0A6A    Oct  3 10:00:00 2026
+192.168.2.8      0001.0A6A.0A6A      arp          000C.29A6.0A6A    Oct  3 10:00:00 2026
+```
+
+> Packet Tracer agrupa las tres filas con el mismo MAC simulado; la cantidad de
+> leases y el rango de IPs son lo importante.
+
+Otros comandos útiles:
+
+```text
+show ip dhcp server statistics
+show ip dhcp conflict
+clear ip dhcp binding 192.168.2.6     ← fuerza al PC a pedir IP de nuevo
+```
+
+### Paso 5.4 — Conectividad local (dentro de cada LAN)
+
+Desde PC-A1:
+
+```text
+ping 192.168.2.1     → gateway (OK)
+ping 192.168.2.7     → otro PC de la misma LAN (OK)
+```
+
+Si el ping al gateway falla, el problema es de capa 1/2 o del DHCP, **no** de
+enrutamiento.
+
+## Parte 6 — Fase A: enrutamiento estático
+
+### Paso 6.1 — Qué hay que escribir
+
+En una malla cada router necesita **2 rutas estáticas** (una por cada LAN
+remota). El siguiente salto es la IP del router vecino **en el enlace por el que
+se le envía el paquete**.
+
+| Router | Destino | Siguiente salto | Interfaz de salida |
+|--------|---------|-----------------|--------------------|
+| R1 | 192.168.2.16 255.255.255.240 | 192.168.2.50 | Gi0/1 |
+| R1 | 192.168.2.32 255.255.255.240 | 192.168.2.57 | Gi0/2 |
+| R2 | 192.168.2.0 255.255.255.240 | 192.168.2.49 | Gi0/1 |
+| R2 | 192.168.2.32 255.255.255.240 | 192.168.2.54 | Gi0/2 |
+| R3 | 192.168.2.0 255.255.255.240 | 192.168.2.58 | Gi0/2 |
+| R3 | 192.168.2.16 255.255.255.240 | 192.168.2.53 | Gi0/1 |
+
+> **Ojo con los dos extremos del enlace 3 (R1 Gi0/2 ↔ R3 Gi0/2):** ahí R1 es
+> `.58` y R3 es `.57`. Como el siguiente salto es **la dirección del vecino**, la
+> ruta de R1 hacia LAN-C usa `.57` y la de R3 hacia LAN-A usa `.58`. Escribir la
+> propia IP como siguiente salto es el error más común de esta fase.
+
+### Paso 6.2 — Comandos
+
+```text
+! ---------- R1 ----------
+configure terminal
+ip route 192.168.2.16 255.255.255.240 192.168.2.50
+ip route 192.168.2.32 255.255.255.240 192.168.2.57
+end
+copy running-config startup-config
+
+! ---------- R2 ----------
+configure terminal
+ip route 192.168.2.0 255.255.255.240 192.168.2.49
+ip route 192.168.2.32 255.255.255.240 192.168.2.54
+end
+copy running-config startup-config
+
+! ---------- R3 ----------
+configure terminal
+ip route 192.168.2.0 255.255.255.240 192.168.2.58
+ip route 192.168.2.16 255.255.255.240 192.168.2.53
+end
+copy running-config startup-config
+```
+
+### Paso 6.3 — Verificar la tabla de enrutamiento
+
+```text
+show ip route
+```
+
+```text
+R1#show ip route
+Codes: L - local, C - connected, S - static, O - OSPF
+
+Gateway of last resort is not set
+
+      192.168.2.0/24 is variably subnetted, 6 subnets, 3 masks
+C        192.168.2.0/28 is directly connected, GigabitEthernet0/0
+L        192.168.2.1/32 is directly connected, GigabitEthernet0/0
+C        192.168.2.48/30 is directly connected, GigabitEthernet0/1
+L        192.168.2.49/32 is directly connected, GigabitEthernet0/1
+C        192.168.2.56/30 is directly connected, GigabitEthernet0/2
+L        192.168.2.57/32 is directly connected, GigabitEthernet0/2
+S        192.168.2.16/28 [1/0] via 192.168.2.50
+S        192.168.2.32/28 [1/0] via 192.168.2.57
+```
+
+Interpretación: `C` = connected (las 3 LANs/enlaces con IP propia), `L` = local
+(dirección de la interfaz), `S` = static (las 2 que escribimos a mano).
+
+Comprobaciones puntuales:
+
+```text
+show ip route 192.168.2.32       ← ¿cómo llega R1 a LAN-C?
+show ip route static             ← solo las estáticas
+show ip route summary
+```
+
+### Paso 6.4 — Probar conectividad entre sedes
+
+Desde **PC-A1** (usa un PC, no el router: así pruebas la configuración completa):
+
+```text
+ping 192.168.2.22      → PC-B1   (LAN-B)
+ping 192.168.2.23      → PC-B2   (LAN-B)
+ping 192.168.2.38      → PC-C1   (LAN-C)
+```
+
+Todos deben responder. Desde PC-A1 hacia su propia LAN y hacia las otras dos:
+
+| Origen | Destino | Resultado esperado |
+|--------|---------|--------------------|
+| PC-A1 | 192.168.2.1 (GW) | OK |
+| PC-A1 | 192.168.2.7 (misma LAN) | OK |
+| PC-A1 | 192.168.2.22 (LAN-B) | OK |
+| PC-A1 | 192.168.2.38 (LAN-C) | OK |
+| PC-B1 | 192.168.2.6 (LAN-A) | OK |
+| PC-C1 | 192.168.2.46 (LAN-C) | OK |
+
+Para localizar **en qué salto** se pierde el paquete, usa `tracert`:
+
+```text
+C:\>tracert 192.168.2.38
+Tracing route to 192.168.2.38 over a maximum of 30 hops
+
+  1   0 ms   0 ms   1 ms  192.168.2.1     ← gateway de R1
+  2   1 ms   1 ms   1 ms  192.168.2.33    ← router R3
+Trace complete.
+```
+
+En una malla, el camino más corto de LAN-A a LAN-C es de **2 saltos** (directo por
+el enlace 3). Si aparecen 3 saltos, el paquete está pasando por R2.
+
+También prueba desde la CLI del router (origen = interfaz LAN):
+
+```text
+ping 192.168.2.38
+ping 192.168.2.22 source 192.168.2.1
+traceroute 192.168.2.38
+show ip arp
+```
+
+## Preguntas de la Sesión A
+
+1. ¿Cuántas direcciones IP se usan en total (LANs + enlaces) y cuántas quedan
+   libres? ¿Qué porcentaje de la red se desaprovecha?
+2. ¿Por qué el bloque de un `/30` empieza en `.48` y no en `.50` si `.50` es una
+   dirección utilizable? Explica la alineación por bloques.
+3. Un PC de LAN-A obtiene `192.168.2.5` (una de las IPs administrativas
+   reservadas). ¿Qué comando corregiste? ¿Cómo lo detectas con
+   `show ip dhcp binding`?
+4. ¿Qué pasaría si configuras el pool con `network 192.168.2.0 255.255.255.0`
+   (máscara /24) en vez de `/28`? ¿Qué IPs entregaría a un PC de LAN-B?
+5. Explica la diferencia entre una ruta `C` (connected) y una ruta `S` (static)
+   en `show ip route`.
+6. ¿Cuántas rutas estáticas escribirías en total si la topología fuera una cadena
+   R1–R2–R3 en lugar de una malla?
+
+## Entregable de la Sesión A
+
+1. Captura de la topología completa con los 3 routers, 3 switches y 9 PCs
+   (**cables en verde**).
+2. Tabla de direccionamiento completa (routers + pools + rango DHCP).
+3. `show ip interface brief` de los 3 routers.
+4. `show ip dhcp pool` y `show ip dhcp binding` de los 3 routers (con los 3
+   leases de cada LAN).
+5. `ipconfig /all` de un PC de cada LAN y `ping` cruzado entre las 3 sedes.
+6. `show ip route` de R1, R2 y R3 mostrando las rutas `S`.
+7. Respuestas a las 6 preguntas.
