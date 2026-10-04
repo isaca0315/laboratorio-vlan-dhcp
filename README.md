@@ -24,6 +24,22 @@ con comandos de diagnóstico.
 - Cálculo de subneteo VLSM en [`SUBNETEO.md`](SUBNETEO.md).
 - Qué hace cada comando en [`COMANDOS.md`](COMANDOS.md).
 
+### Presentación de teoría
+
+[`Teoria-Lab-VLSM-DHCP.pptx`](Teoria-Lab-VLSM-DHCP.pptx) — 31 diapositivas
+(16:9) con notas del orador y minutaje. Cubre, en este orden:
+
+1. Dirección IP, máscara y prefijo CIDR.
+2. La fórmula `2^h − 2` y las direcciones especiales de una subred.
+3. VLSM: por qué las LAN son `/28` y los enlaces `/30`, y los 6 errores típicos.
+4. Switch frente a router, cableado de cobre y ARP.
+5. DHCP: DORA, pools, opciones y exclusiones.
+6. Tabla de enrutamiento, rutas estáticas, ida y vuelta, OSPF, RIPv2 y redundancia.
+7. Verificación, límites de Packet Tracer 9.0.1 y checklist del laboratorio.
+
+Se regenera con `python3 tools/build_teoria_lab.py`. El layout se verifica con
+`python3 tools/check_layout.py Teoria-Lab-VLSM-DHCP.pptx`.
+
 ## Cómo se trabaja esta sesión
 
 | Sesión | Qué haces | Entregable breve | Guía |
