@@ -249,9 +249,11 @@ ip dhcp excluded-address 192.168.2.1 192.168.2.5
 ip dhcp pool LAN-A
  network 192.168.2.0 255.255.255.240
  default-router 192.168.2.1
- dns-server 8.8.8.8 1.1.1.1
+ dns-server 8.8.8.8
  domain-name lab-utp.pa
- lease 1
+! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
+!  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
+!  se aplica solo.)
 exit
 end
 copy running-config startup-config
@@ -266,9 +268,11 @@ ip dhcp excluded-address 192.168.2.17 192.168.2.21
 ip dhcp pool LAN-B
  network 192.168.2.16 255.255.255.240
  default-router 192.168.2.17
- dns-server 8.8.8.8 1.1.1.1
+ dns-server 8.8.8.8
  domain-name lab-utp.pa
- lease 1
+! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
+!  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
+!  se aplica solo.)
 exit
 end
 copy running-config startup-config
@@ -283,9 +287,11 @@ ip dhcp excluded-address 192.168.2.33 192.168.2.37
 ip dhcp pool LAN-C
  network 192.168.2.32 255.255.255.240
  default-router 192.168.2.33
- dns-server 8.8.8.8 1.1.1.1
+ dns-server 8.8.8.8
  domain-name lab-utp.pa
- lease 1
+! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
+!  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
+!  se aplica solo.)
 exit
 end
 copy running-config startup-config
@@ -298,9 +304,26 @@ copy running-config startup-config
 | `ip dhcp excluded-address A B` | Rango **reservado** que nunca se entrega (gateway + admin) |
 | `network 192.168.2.0 255.255.255.240` | Subred del pool (se escriben red + máscara) |
 | `default-router 192.168.2.1` | Gateway que se le entrega al PC |
-| `dns-server 8.8.8.8 1.1.1.1` | Servidores DNS (Google / Quad9) |
+| `dns-server 8.8.8.8` | Servidor DNS que recibe el PC (Google) |
 | `domain-name lab-utp.pa` | Nombre de dominio que se envía en la opción 15 |
-| `lease 1` | Duración del alquiler en **días** |
+| `lease 1` | Duración del alquiler. **No existe en PT** (sí en IOS real) |
+| `option 3` / `option 6` | Alternativa para gateway y DNS usando el número de opción |
+
+> **Dos límites de Packet Tracer 9.0.1** (el 2911 de PT no implementa todo el
+> IOS real). Si te aparece `% Invalid input detected`, no es un error de tipeo:
+>
+> - **`lease` no existe.** En un router real sí existe (`lease 1` = 1 día), pero
+>   PT lo rechaza. No hace falta: el tiempo de alquiler por defecto ya es de 1 día,
+>   así que omítelo. Está comentado en los CLI.
+> - **`dns-server` acepta un solo IP.** En IOS real puedes escribir
+>   `dns-server 8.8.8.8 1.1.1.1`; en PT solo uno. Por eso los CLI llevan
+>   `dns-server 8.8.8.8` y no el segundo.
+>
+> Puedes comprobar qué acepta cada router con `?` dentro del pool:
+> ```
+> R1(config)#ip dhcp pool LAN-A
+> R1(config-dhcp-pool)#?
+> ```
 
 ### Paso 4.6 — Verificar el pool en el router
 
@@ -319,7 +342,7 @@ Network:
 Domain-Name: lab-utp.pa
 
 Default Routers: 192.168.2.1
-DNS Servers: 8.8.8.8  1.1.1.1
+DNS Servers: 8.8.8.8
 ```
 
 También sirve para detectar un error típico: si `Network:` aparece con una máscara

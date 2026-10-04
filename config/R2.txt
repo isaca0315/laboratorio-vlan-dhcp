@@ -53,9 +53,11 @@ ip dhcp excluded-address 192.168.2.17 192.168.2.21
 ip dhcp pool LAN-B
  network 192.168.2.16 255.255.255.240
  default-router 192.168.2.17
- dns-server 8.8.8.8 1.1.1.1
+ dns-server 8.8.8.8
  domain-name lab-utp.pa
- lease 1
+! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
+!  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
+!  se aplica solo.)
 exit
 !
 ! =========================================================
