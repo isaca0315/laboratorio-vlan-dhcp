@@ -16,9 +16,13 @@ con comandos de diagnóstico.
 
 - Cisco Packet Tracer (cuenta de estudiante Cisco NetAcad).
 - Este instructivo (`README.md`, `SESION-A.md`, `SESION-B.md`).
+- Referencias: [`SUBNETEO.md`](SUBNETEO.md) (máscaras),
+  [`COMANDOS.md`](COMANDOS.md) (qué hace cada comando),
+  [`DIAGRAMAS.md`](DIAGRAMAS.md) (diagramas para draw.io).
 - CLI de los tres routers en `config/` (copiar y pegar).
 - Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
 - Cálculo de subneteo VLSM en [`SUBNETEO.md`](SUBNETEO.md).
+- Qué hace cada comando en [`COMANDOS.md`](COMANDOS.md).
 
 ## Cómo se trabaja esta sesión
 

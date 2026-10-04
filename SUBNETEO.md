@@ -44,6 +44,42 @@ Esto es **VLSM** (máscaras de longitud variable): cada subred usa el prefijo
 **más corto** que cumple su requisito. Un `/24` para las 6 subredas funcionaría
 también, pero desperdiciaría el 75 % del espacio.
 
+### ¿Por qué hay dos cálculos? Porque hay dos requisitos
+
+No son "subnetear las LAN" y "subnetear los routers" por separado. Es **un solo
+cálculo aplicado a seis segmentos**, y el resultado sale de dos tamaños distintos
+porque hay dos necesidades distintas:
+
+- **10 equipos** → 14 útiles → **`/28`** (3 LAN)
+- **2 equipos** → 2 útiles → **`/30`** (3 enlaces)
+
+La prueba de que el criterio **no es si el otro extremo es un switch o un
+router**: R1 tiene las dos máscaras a la vez.
+
+| Interfaz | Conecta con | Equipos que necesitan IP | Prefijo |
+|----------|-------------|--------------------------|---------|
+| `R1 Gi0/0` | SW1 (LAN) | 10 | `/28` |
+| `R1 Gi0/1` | R2 (enlace) | 2 | `/30` |
+| `R1 Gi0/2` | R3 (enlace) | 2 | `/30` |
+
+Un mismo router con tres subredes y dos prefijos distintos. Lo que decide la
+máscara es **cuántos dispositivos necesitan dirección en ese segmento**.
+
+### ¿Por qué un enlace no puede ser `/28`? Sí podría, pero se desperdicia
+
+Un `/28` en un enlace entre routers funcionaría (sobran 12 IPs). Pero como hay
+3 enlaces, serían **36 direcciones tiradas** de las 256 del `/24`.
+
+### ¿Por qué una LAN no puede ser `/30`? Porque sí se rompe
+
+Con `/30` la LAN tendría solo 2 IPs útiles y el gateway consume una: queda **1
+para los 9 PCs**. El primero no recibiría lease y los demás ni siquiera podrían
+pedirlo.
+
+**La asimetría:** sobre-asignar (dar `/28` a un enlace) funciona pero desperdicia;
+sub-asignar (`/30` a una LAN) rompe el laboratorio. Por eso siempre se calcula
+el **mínimo que cumple**, nunca más.
+
 ---
 
 ## 3. Elegir el prefijo de las LAN

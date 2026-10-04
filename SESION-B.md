@@ -19,6 +19,8 @@ ping 192.168.2.38        ← desde PC-A1: debe responder
 Si el ping entre sedes falla, **no sigas**: primero corrige la Fase A (ver
 sesión B, Parte 5).
 
+> Referencia de comandos: [`COMANDOS.md`](COMANDOS.md) (§6 OSPF, §7 RIPv2).
+
 ## Parte 2 — Fase B: OSPF área 0
 
 ### Paso 2.1 — Por qué OSPF y no estáticas

@@ -74,7 +74,8 @@ Con eso la Parte 3 puede levantar los puertos y todos deben quedar en verde.
 Resuelve antes de configurar, para justificar cada comando que escribas después.
 
 > Si necesitas repasar el método, [`SUBNETEO.md`](SUBNETEO.md) lo desarrolla
-> paso a paso y trae 6 ejercicios con respuestas.
+> paso a paso y trae 6 ejercicios con respuestas. Para saber qué hace cada
+> comando que escribes abajo, mira [`COMANDOS.md`](COMANDOS.md).
 
 ### Paso 2.1 — Prefijo mínimo para ≥10 hosts
 
