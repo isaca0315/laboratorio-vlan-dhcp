@@ -111,35 +111,35 @@ siguiente empezaría en `.60`, que es múltiplo de 16 y de 4 → asignación vá
 ### Paso 3.1 — R1 (Sede A / LAN-A)
 
 ```text
-enable
-configure terminal
-hostname R1-SEDE-A
-no ip domain-lookup
-enable secret cisco
-line console 0
- password cisco
- logging synchronous
-line vty 0 4
- password cisco
- login
+enable                        ! modo privilegiado
+configure terminal             ! modo de configuración global
+hostname R1-SEDE-A             ! nombre del router; sale en el prompt
+no ip domain-lookup            ! evita que un typo se tome como dominio
+enable secret cisco            ! contraseña del modo privilegiado
+line console 0                 ! línea de consola
+ password cisco                ! contraseña de la consola
+ logging synchronous           ! que los mensajes no partan lo que escribes
+line vty 0 4                   ! las 5 líneas de acceso remoto
+ password cisco                ! contraseña de acceso remoto
+ login                         ! exige la contraseña (si no, vty queda abierto)
 !
-interface GigabitEthernet0/0
- description LAN-A - Gateway 192.168.2.1
- ip address 192.168.2.1 255.255.255.240
- no shutdown
+interface GigabitEthernet0/0    ! puerto hacia el switch SW1
+ description LAN-A - Gateway 192.168.2.1  ! etiqueta visible en show config
+ ip address 192.168.2.1 255.255.255.240    ! gateway de LAN-A (máscara /28)
+ no shutdown                   ! ENCIENDE la interfaz: sin esto no hay red
 !
-interface GigabitEthernet0/1
+interface GigabitEthernet0/1   ! enlace punto a punto con R2
  description Enlace P2P a R2 (192.168.2.48/30)
- ip address 192.168.2.49 255.255.255.252
+ ip address 192.168.2.49 255.255.255.252   ! extremo de R1 en ese /30
  no shutdown
 !
-interface GigabitEthernet0/2
+interface GigabitEthernet0/2   ! enlace punto a punto con R3
  description Enlace P2P a R3 (192.168.2.56/30)
- ip address 192.168.2.58 255.255.255.252
+ ip address 192.168.2.58 255.255.255.252   ! extremo de R1 en ese /30
  no shutdown
 !
-end
-copy running-config startup-config
+end                            ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config para que no se pierda
 ```
 
 **Punto clave:** `no shutdown` es obligatorio. Las interfaces Gig0/0-Gig0/2 de un
@@ -148,75 +148,75 @@ copy running-config startup-config
 ### Paso 3.2 — R2 (Sede B / LAN-B)
 
 ```text
-enable
-configure terminal
-hostname R2-SEDE-B
-no ip domain-lookup
-enable secret cisco
-line console 0
- password cisco
- logging synchronous
-line vty 0 4
- password cisco
- login
+enable                        ! modo privilegiado
+configure terminal             ! modo de configuración global
+hostname R2-SEDE-B             ! mismo esqueleto que R1, con los datos de B
+no ip domain-lookup            ! evita que un typo se tome como dominio
+enable secret cisco            ! contraseña del modo privilegiado
+line console 0                 ! línea de consola
+ password cisco                ! contraseña de la consola
+ logging synchronous           ! que los mensajes no parten lo que escribes
+line vty 0 4                   ! las 5 líneas de acceso remoto
+ password cisco                ! contraseña de acceso remoto
+ login                         ! exige la contraseña (si no, vty queda abierto)
 !
-interface GigabitEthernet0/0
- description LAN-B - Gateway 192.168.2.17
- ip address 192.168.2.17 255.255.255.240
- no shutdown
+interface GigabitEthernet0/0    ! puerto hacia el switch SW2
+ description LAN-B - Gateway 192.168.2.17  ! etiqueta visible en show config
+ ip address 192.168.2.17 255.255.255.240   ! gateway de LAN-B (máscara /28)
+ no shutdown                   ! ENCIENDE la interfaz: sin esto no hay red
 !
-interface GigabitEthernet0/1
+interface GigabitEthernet0/1   ! enlace con R1 (misma subred .48/30, otro extremo)
  description Enlace P2P a R1 (192.168.2.48/30)
- ip address 192.168.2.50 255.255.255.252
+ ip address 192.168.2.50 255.255.255.252   ! extremo de R2 en ese /30
  no shutdown
 !
-interface GigabitEthernet0/2
+interface GigabitEthernet0/2   ! enlace con R3
  description Enlace P2P a R3 (192.168.2.52/30)
- ip address 192.168.2.53 255.255.255.252
+ ip address 192.168.2.53 255.255.255.252   ! extremo de R2 en ese /30
  no shutdown
 !
-end
-copy running-config startup-config
+end                            ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config para que no se pierda
 ```
 
 ### Paso 3.3 — R3 (Sede C / LAN-C)
 
 ```text
-enable
-configure terminal
-hostname R3-SEDE-C
-no ip domain-lookup
-enable secret cisco
-line console 0
- password cisco
- logging synchronous
-line vty 0 4
- password cisco
- login
+enable                        ! modo privilegiado
+configure terminal             ! modo de configuración global
+hostname R3-SEDE-C             ! mismo esqueleto que R1, con los datos de C
+no ip domain-lookup            ! evita que un typo se tome como dominio
+enable secret cisco            ! contraseña del modo privilegiado
+line console 0                 ! línea de consola
+ password cisco                ! contraseña de la consola
+ logging synchronous           ! que los mensajes no parten lo que escribes
+line vty 0 4                   ! las 5 líneas de acceso remoto
+ password cisco                ! contraseña de acceso remoto
+ login                         ! exige la contraseña (si no, vty queda abierto)
 !
-interface GigabitEthernet0/0
- description LAN-C - Gateway 192.168.2.33
- ip address 192.168.2.33 255.255.255.240
- no shutdown
+interface GigabitEthernet0/0    ! puerto hacia el switch SW3
+ description LAN-C - Gateway 192.168.2.33  ! etiqueta visible en show config
+ ip address 192.168.2.33 255.255.255.240   ! gateway de LAN-C (máscara /28)
+ no shutdown                   ! ENCIENDE la interfaz: sin esto no hay red
 !
-interface GigabitEthernet0/1
+interface GigabitEthernet0/1   ! enlace con R2
  description Enlace P2P a R2 (192.168.2.52/30)
- ip address 192.168.2.54 255.255.255.252
+ ip address 192.168.2.54 255.255.255.252   ! extremo de R3 en ese /30
  no shutdown
 !
-interface GigabitEthernet0/2
+interface GigabitEthernet0/2   ! enlace con R1
  description Enlace P2P a R1 (192.168.2.56/30)
- ip address 192.168.2.57 255.255.255.252
+ ip address 192.168.2.57 255.255.255.252   ! extremo de R3 en ese /30
  no shutdown
 !
-end
-copy running-config startup-config
+end                            ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config para que no se pierda
 ```
 
 ### Paso 3.4 — Verificar las interfaces
 
 ```text
-show ip interface brief
+show ip interface brief   ! una línea por interfaz: IP, estado físico y protocolo
 ```
 
 Esperado (interfaz = `up`/`up` y todas con IP):
@@ -244,58 +244,61 @@ propia y la LAN quedaría aislada.
 ### Paso 4.2 — R1
 
 ```text
-configure terminal
+configure terminal             ! modo de configuración global
 ip dhcp excluded-address 192.168.2.1 192.168.2.5
+!   .1-.5 queda fuera del pool: es el gateway, no un PC
 !
-ip dhcp pool LAN-A
- network 192.168.2.0 255.255.255.240
- default-router 192.168.2.1
- dns-server 8.8.8.8
- domain-name lab-utp.pa
+ip dhcp pool LAN-A             ! crea el pool y entra a su modo de configuración
+ network 192.168.2.0 255.255.255.240   ! subred /28 que reparte este pool
+ default-router 192.168.2.1       ! IP que recibe el PC como gateway
+ dns-server 8.8.8.8             ! servidor DNS que recibe el PC
+ domain-name lab-utp.pa        ! sufijo DNS: el host se llamará PC-A1.lab-utp.pa
 ! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
 !  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
 !  se aplica solo.)
-exit
-end
-copy running-config startup-config
+exit                           ! sale del modo pool -> vuelve a config global
+end                            ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
 ```
 
 ### Paso 4.3 — R2
 
 ```text
-configure terminal
+configure terminal             ! modo de configuración global
 ip dhcp excluded-address 192.168.2.17 192.168.2.21
+!   .17-.21 queda fuera del pool: es el gateway, no un PC
 !
-ip dhcp pool LAN-B
- network 192.168.2.16 255.255.255.240
- default-router 192.168.2.17
- dns-server 8.8.8.8
- domain-name lab-utp.pa
+ip dhcp pool LAN-B             ! crea el pool y entra a su modo de configuración
+ network 192.168.2.16 255.255.255.240   ! subred /28 que reparte este pool
+ default-router 192.168.2.17       ! IP que recibe el PC como gateway
+ dns-server 8.8.8.8             ! servidor DNS que recibe el PC
+ domain-name lab-utp.pa        ! sufijo DNS: el host se llamará PC-A1.lab-utp.pa
 ! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
 !  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
 !  se aplica solo.)
-exit
-end
-copy running-config startup-config
+exit                           ! sale del modo pool -> vuelve a config global
+end                            ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
 ```
 
 ### Paso 4.4 — R3
 
 ```text
-configure terminal
+configure terminal             ! modo de configuración global
 ip dhcp excluded-address 192.168.2.33 192.168.2.37
+!   .33-.37 queda fuera del pool: es el gateway, no un PC
 !
-ip dhcp pool LAN-C
- network 192.168.2.32 255.255.255.240
- default-router 192.168.2.33
- dns-server 8.8.8.8
- domain-name lab-utp.pa
+ip dhcp pool LAN-C             ! crea el pool y entra a su modo de configuración
+ network 192.168.2.32 255.255.255.240   ! subred /28 que reparte este pool
+ default-router 192.168.2.33       ! IP que recibe el PC como gateway
+ dns-server 8.8.8.8             ! servidor DNS que recibe el PC
+ domain-name lab-utp.pa        ! sufijo DNS: el host se llamará PC-A1.lab-utp.pa
 ! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
 !  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
 !  se aplica solo.)
-exit
-end
-copy running-config startup-config
+exit                           ! sale del modo pool -> vuelve a config global
+end                            ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
 ```
 
 ### Paso 4.5 — Qué significa cada parámetro
@@ -329,7 +332,7 @@ copy running-config startup-config
 ### Paso 4.6 — Verificar el pool en el router
 
 ```text
-show ip dhcp pool
+show ip dhcp pool   ! muestra los pool y sus parámetros: red, gateway, DNS y dominio
 ```
 
 ```text
@@ -359,8 +362,8 @@ En cada PC: `Desktop → IP Configuration → DHCP → Refresh` (o escribe
 ### Paso 5.2 — Comandos en el PC
 
 ```text
-ipconfig /renew
-ipconfig /all
+ipconfig /renew   ! pide una IP nueva al servidor DHCP (equivale a /release + /renew)
+ipconfig /all    ! muestra la config completa: IP, máscara, gateway, DNS y lease
 ```
 
 Esperado en PC-A1:
@@ -385,7 +388,7 @@ Comprueba los 3 campos críticos: **IP dentro del rango asignable**, **máscara
 ### Paso 5.3 — Confirmar el enlace DHCP desde el router
 
 ```text
-show ip dhcp binding
+show ip dhcp binding   ! qué IP se entregó a cada PC (MAC, tipo de lease y vencimiento)
 ```
 
 ```text
@@ -403,9 +406,9 @@ IP address       Client-ID/          Lease type   Hardware address   Lease expir
 Otros comandos útiles:
 
 ```text
-show ip dhcp server statistics
-show ip dhcp conflict
-clear ip dhcp binding 192.168.2.6     ← fuerza al PC a pedir IP de nuevo
+show ip dhcp server statistics  ! cuántas peticiones y qué han resuelto
+show ip dhcp conflict           ! IPs que dos dispositivos reclaman a la vez
+clear ip dhcp binding 192.168.2.6   ! borra esa entrega: el PC pedirá IP de nuevo
 ```
 
 ### Paso 5.4 — Conectividad local (dentro de cada LAN)
@@ -445,24 +448,24 @@ se le envía el paquete**.
 ### Paso 6.2 — Comandos
 
 ```text
-! ---------- R1 ----------
-configure terminal
-ip route 192.168.2.16 255.255.255.240 192.168.2.50
-ip route 192.168.2.32 255.255.255.240 192.168.2.57
-end
-copy running-config startup-config
+! ---------- R1 ----------          ! R1 no tiene camino propio a las otras LANs
+configure terminal               ! modo de configuración global
+ip route 192.168.2.16 255.255.255.240 192.168.2.50  ! LAN-B se alcanza por R2 (.50)
+ip route 192.168.2.32 255.255.255.240 192.168.2.57  ! LAN-C se alcanza por R3 (.57)
+end                              ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
 
 ! ---------- R2 ----------
-configure terminal
-ip route 192.168.2.0 255.255.255.240 192.168.2.49
-ip route 192.168.2.32 255.255.255.240 192.168.2.54
+configure terminal               ! modo de configuración global
+ip route 192.168.2.0 255.255.255.240 192.168.2.49   ! LAN-A se alcanza por R1 (.49)
+ip route 192.168.2.32 255.255.255.240 192.168.2.54  ! LAN-C se alcanza por R3 (.54)
 end
 copy running-config startup-config
 
 ! ---------- R3 ----------
-configure terminal
-ip route 192.168.2.0 255.255.255.240 192.168.2.58
-ip route 192.168.2.16 255.255.255.240 192.168.2.53
+configure terminal               ! modo de configuración global
+ip route 192.168.2.0 255.255.255.240 192.168.2.58   ! LAN-A se alcanza por R1 (.58)
+ip route 192.168.2.16 255.255.255.240 192.168.2.53  ! LAN-B se alcanza por R2 (.53)
 end
 copy running-config startup-config
 ```
@@ -470,7 +473,7 @@ copy running-config startup-config
 ### Paso 6.3 — Verificar la tabla de enrutamiento
 
 ```text
-show ip route
+show ip route   ! tabla de enrutamiento completa: connected, static y local
 ```
 
 ```text
@@ -544,10 +547,10 @@ el enlace 3). Si aparecen 3 saltos, el paquete está pasando por R2.
 También prueba desde la CLI del router (origen = interfaz LAN):
 
 ```text
-ping 192.168.2.38
-ping 192.168.2.22 source 192.168.2.1
-traceroute 192.168.2.38
-show ip arp
+ping 192.168.2.38                ! prueba básica: 4 paquetes enviados y recibidos
+ping 192.168.2.22 source 192.168.2.1  ! sale con la IP del gateway, no con la del PC
+traceroute 192.168.2.38          ! muestra por qué routers pasa el paquete
+show ip arp                      ! tabla ARP: qué IP se ha resuelto a qué MAC
 ```
 
 ## Preguntas de la Sesión A

@@ -37,6 +37,10 @@ con comandos de diagnóstico.
 6. Tabla de enrutamiento, rutas estáticas, ida y vuelta, OSPF, RIPv2 y redundancia.
 7. Verificación, límites de Packet Tracer 9.0.1 y checklist del laboratorio.
 
+El mismo contenido en texto plano (para leer, buscar o imprimir sin PowerPoint)
+está en [`TEORIA-LAB-VLSM-DHCP.md`](TEORIA-LAB-VLSM-DHCP.md), con las notas del
+orador incluidas.
+
 Se regenera con `python3 tools/build_teoria_lab.py`. El layout se verifica con
 `python3 tools/check_layout.py Teoria-Lab-VLSM-DHCP.pptx`.
 

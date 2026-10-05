@@ -11,19 +11,200 @@ demostrar la **redundancia** de enlaces que aportan los protocolos dinámicos.
 Antes de tocar nada, confirma que la Fase A quedó bien:
 
 ```text
-show ip route static
-show ip route
-ping 192.168.2.38        ← desde PC-A1: debe responder
+show ip route static   ! las 2 rutas estáticas que dejaste en la Sesión A
+show ip route          ! tabla completa: connected, local y static
+ping 192.168.2.38      ! desde PC-A1: confirma que hay conectividad entre sedes
 ```
 
 Si el ping entre sedes falla, **no sigas**: primero corrige la Fase A (ver
-sesión B, Parte 5).
+sesión B, Parte 6).
 
 > Referencia de comandos: [`COMANDOS.md`](COMANDOS.md) (§6 OSPF, §7 RIPv2).
 
-## Parte 2 — Fase B: OSPF área 0
+## Parte 2 — VLAN y enrutamiento entre VLANs
 
-### Paso 2.1 — Por qué OSPF y no estáticas
+Hasta ahora cada sede era **una sola LAN**: un switch, un dominio de broadcast y
+una subred. Con VLAN cada sede se parte en **dos dominios de broadcast** con
+subred propia, y el router pasa a ser el que enruta entre VLANs usando **un solo
+cable** (router-on-a-stick).
+
+| Sede | VLAN | Nombre | Subred | Gateway | Pool DHCP | PCs |
+|------|------|--------|--------|---------|-----------|-----|
+| A | 10 | `USUARIOS-A` | 192.168.2.0/28 | .1 | .6-.14 | PC-A1, PC-A2 |
+| A | 20 | `INVITADOS-A` | 192.168.2.64/28 | .65 | .70-.78 | PC-A3 |
+| B | 10 | `USUARIOS-B` | 192.168.2.16/28 | .17 | .22-.30 | PC-B1, PC-B2 |
+| B | 20 | `INVITADOS-B` | 192.168.2.80/28 | .81 | .86-.94 | PC-B3 |
+| C | 10 | `USUARIOS-C` | 192.168.2.32/28 | .33 | .38-.46 | PC-C1, PC-C2 |
+| C | 20 | `INVITADOS-C` | 192.168.2.96/28 | .97 | .102-.110 | PC-C3 |
+
+Las tres subredes nuevas son `.64/28`, `.80/28` y `.96/28`. Los bloques /28
+empiezan en **múltiplos de 16**, así que `.60/28` no existe como red, y de
+`.48` a `.59` ya lo ocupan los tres enlaces /30 de la Sesión A.
+
+> La VLAN 10 deja intacta la Fase A: mismo switch, misma IP de gateway y mismo
+> pool. Lo único que se añade es la VLAN 20 y el cable del router pasa a ser
+> trunk. No hay que rehacer el VLSM de la Sesión A.
+
+### Paso 2.1 — Qué cambia respecto a la Sesión A
+
+Un PC por sede cambia de VLAN: el tercero de cada sede.
+
+| PC | Antes (VLAN 10) | Ahora (VLAN 20) | Puerto del switch |
+|----|-----------------|-----------------|-------------------|
+| PC-A3 | IP del pool .6-.14 | IP del pool .70-.78 | SW1 Fa0/4, access VLAN 20 |
+| PC-B3 | IP del pool .22-.30 | IP del pool .86-.94 | SW2 Fa0/4, access VLAN 20 |
+| PC-C3 | IP del pool .38-.46 | IP del pool .102-.110 | SW3 Fa0/4, access VLAN 20 |
+
+Los **cables no cambian**: siguen siendo los mismos 15. Lo que cambia es a qué
+VLAN pertenece cada puerto del switch.
+
+### Paso 2.2 — Crear los VLAN en el switch
+
+En `SW1` (haz lo equivalente en `SW2` y `SW3`, con los valores del Paso 2.6):
+
+```text
+enable                     ! modo privilegiado
+configure terminal          ! modo de configuración global
+vlan 10                    ! crea el VLAN 10
+ name USUARIOS-A           ! le pone nombre; es etiqueta, no afecta al tráfico
+vlan 20                    ! crea el VLAN 20
+ name INVITADOS-A          ! nombre de la VLAN nueva de esta sede
+end                        ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
+```
+
+Un VLAN no existe hasta que se crea con `vlan <id>`: los puertos no pueden
+asignarse a un VLAN que todavía no está en la base de datos del switch.
+
+### Paso 2.3 — Poner los puertos en acceso y el del router en trunk
+
+```text
+configure terminal          ! modo de configuración global
+interface FastEthernet0/2   ! PC-A1
+ switchport mode access      ! puerto de un solo VLAN: el de un PC
+ switchport access vlan 10   ! ese PC queda en la VLAN 10
+interface FastEthernet0/3   ! PC-A2
+ switchport mode access
+ switchport access vlan 10   ! mismo VLAN que PC-A1: se ven entre sí
+interface FastEthernet0/4   ! PC-A3, el que cambia de VLAN
+ switchport mode access
+ switchport access vlan 20   ! ahora en la VLAN 20: deja de ver a PC-A1 y PC-A2
+interface FastEthernet0/1   ! el cable que va al router R1 Gi0/0
+ switchport mode trunk       ! este puerto transporta las 2 VLANs etiquetadas
+ switchport trunk native vlan 10  ! la VLAN 10 viaja SIN etiqueta (ver nota)
+ switchport trunk allowed vlan 10,20  ! soloDeja pasar estas 2 VLANs
+end                          ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
+```
+
+> **La trampa del `native`.** Por defecto un trunk usa la VLAN 1 como nativa, y
+> lo que llega sin etiqueta va a parar ahí. El router ya tiene `192.168.2.1/28`
+> en Gi0/0 **sin configurar**, o sea sin etiqueta: con el `native` por defecto
+> esa IP quedaría en la VLAN 1, en una subred que no existe en el plan, y los
+> PCs de la VLAN 10 no la verían. Por eso el `native` se fija en 10.
+
+Los PCs de una misma VLAN se ven entre sí porque comparten dominio de broadcast;
+los de VLAN distintas **no**, aunque estén en el mismo switch y el mismo cable
+al router. Eso es el punto del ejercicio.
+
+### Paso 2.4 — Las subinterfaces en el router (router-on-a-stick)
+
+El trunk trae las dos VLANs por el mismo cable, así que la IP de cada VLAN va en
+una subinterfaz distinta. En `R1`:
+
+```text
+configure terminal          ! modo de configuración global
+interface GigabitEthernet0/0   ! la física: se queda con la IP de la VLAN 10
+ ip address 192.168.2.1 255.255.255.240  ! gateway de VLAN 10, sin etiqueta
+ no shutdown                ! la física debe quedar encendida
+interface GigabitEthernet0/0.20  ! subinterfaz lógica para la VLAN 20
+ encapsulation dot1Q 20     ! add: etiquetas este tráfico con 802.1Q VLAN 20
+ ip address 192.168.2.65 255.255.255.240  ! gateway de la VLAN 20 de la sede A
+ no shutdown                ! enciende también la subinterfaz
+end                          ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
+```
+
+Con esto R1 enruta entre las dos VLAN de su sede: un `ping` de PC-A3 a PC-A1
+sale por la subinterfaz y vuelve por la física, sin tocar el cableado.
+
+### Paso 2.5 — DHCP para la VLAN 20
+
+Cada VLAN es una subred distinta, así que necesita **su propio pool**. El de la
+VLAN 20 en R1:
+
+```text
+configure terminal          ! modo de configuración global
+ip dhcp excluded-address 192.168.2.65 192.168.2.69
+!   .65-.69 fuera del pool: es el gateway de la VLAN 20, no un PC
+ip dhcp pool VLAN20-A       ! crea el pool de la VLAN 20 de la sede A
+ network 192.168.2.64 255.255.255.240  ! subred /28 que reparte este pool
+ default-router 192.168.2.65  ! gateway que reciben los PCs de la VLAN 20
+ dns-server 8.8.8.8          ! servidor DNS que reciben los PCs
+ domain-name lab-utp.pa     ! sufijo DNS: el host será PC-A3.lab-utp.pa
+exit                         ! sale del modo pool -> vuelve a config global
+end                          ! vuelve al modo privilegiado
+copy running-config startup-config ! guarda la config
+```
+
+### Paso 2.6 — Repetir en SW2, SW3, R2 y R3
+
+Estos son todos los valores que cambian; el resto de los comandos es idéntico.
+
+| Elemento | SW2 / R2 (sede B) | SW3 / R3 (sede C) |
+|----------|-------------------|-------------------|
+| VLAN 10 | `USUARIOS-B`, red .16/28 | `USUARIOS-C`, red .32/28 |
+| VLAN 20 | `INVITADOS-B`, red .80/28 | `INVITADOS-C`, red .96/28 |
+| Gateway VLAN 20 | `192.168.2.81/28` | `192.168.2.97/28` |
+| Subinterfaz | `Gi0/0.20`, `encapsulation dot1Q 20` | `Gi0/0.20`, `encapsulation dot1Q 20` |
+| Exclusión DHCP | `192.168.2.81 192.168.2.85` | `192.168.2.97 192.168.2.101` |
+| Pool DHCP | `ip dhcp pool VLAN20-B`, red .80/28 | `ip dhcp pool VLAN20-C`, red .96/28 |
+| Default-router | `192.168.2.81` | `192.168.2.97` |
+| Puerto access VLAN 20 | SW2 Fa0/4 (PC-B3) | SW3 Fa0/4 (PC-C3) |
+| Native del trunk | SW2 Fa0/1 `vlan 10` | SW3 Fa0/1 `vlan 10` |
+
+En los tres routers la subinterfaz es `Gi0/0.20` porque la LAN de cada router es
+siempre su `Gi0/0` (ver Sesión A, Parte 3).
+
+> OSPF y RIP no necesitan cambios: `network 192.168.2.0 0.0.0.255` ya cubre
+> cualquier interfaz dentro de 192.168.2.x, y las subinterfaces lo están. Las
+> subredes `.64/28`, `.80/28` y `.96/28` se anuncian solas.
+
+### Paso 2.7 — Verificar
+
+En el switch:
+
+```text
+show vlan brief          ! VLAN 10 y 20 creadas, y qué puertos son de cada una
+show interfaces trunk    ! qué VLANs pasan por el Fa0/1 y cuál es la nativa
+```
+
+En el router:
+
+```text
+show ip interface brief  ! Gi0/0 con .1/28 y Gi0/0.20 con .65/28: dos gateways
+show ip dhcp binding     ! 2 IPs del pool de la VLAN 10 y 1 del pool de la VLAN 20
+show ip dhcp pool VLAN20-A  ! el pool nuevo: red .64/28, gateway .65, sin leases
+```
+
+En los PCs, tras un `ipconfig /renew` en PC-A3, debe salir una IP del rango
+.70-.78 con gateway .65 y máscara /28.
+
+Prueba el punto clave del ejercicio:
+
+```text
+PC-A3> ping 192.168.2.1      ! a su propio gateway (VLAN 20)  -> OK
+PC-A3> ping 192.168.2.6      ! a PC-A1, en OTRA VLAN           -> falla
+PC-A1> ping 192.168.2.70     ! a PC-A3, en OTRA VLAN           -> OK (R1 enruta)
+```
+
+Los dos primeros pings son de un PC a su gateway y a un PC de otra VLAN: el
+segundo falla a propósito. El tercero es el que demuestra que el router está
+enrutando entre VLANs con un solo cable físico.
+
+## Parte 3 — Fase B: OSPF área 0
+
+### Paso 3.1 — Por qué OSPF y no estáticas
 
 | Ventaja | Explicación |
 |---------|-------------|
@@ -32,7 +213,7 @@ sesión B, Parte 5).
 | Mejor ruta | Elige por costo (métrica) y no por "lo que escribí" |
 | Escalable | Con 30 routers seguirías usando 1 comando por router, no 29 rutas |
 
-### Paso 2.2 — Qué significa el comando
+### Paso 3.2 — Qué significa el comando
 
 ```text
 router ospf 10                      ← proceso OSPF con ID local 10
@@ -45,29 +226,29 @@ router ospf 10                      ← proceso OSPF con ID local 10
 > `255.255.255.255` → wildmask `0.0.0.255`. Se puede abreviar:
 > `network 192.168.2.0 area 0` (Packet Tracer lo acepta y expande solo).
 
-### Paso 2.3 — Configurar los 3 routers
+### Paso 3.3 — Configurar los 3 routers
 
 ```text
 ! ---------- R1 ----------
-configure terminal
-router ospf 10
- router-id 192.168.2.1
- network 192.168.2.0 0.0.0.255 area 0
- passive-interface GigabitEthernet0/0
-end
+configure terminal             ! modo de configuracion global
+router ospf 10                 ! arranca el proceso OSPF con ID local 10
+ router-id 192.168.2.1        ! ID único del router; debe coincidir en los 3
+ network 192.168.2.0 0.0.0.255 area 0  ! anuncia 192.168.2.x en el área 0
+ passive-interface GigabitEthernet0/0  ! en la LAN de PCs no se envían hellos
+end                            ! vuelve al modo privilegiado
 
 ! ---------- R2 ----------
-configure terminal
+configure terminal             ! mismo proceso OSPF, con el ID de R2
 router ospf 10
- router-id 192.168.2.17
+ router-id 192.168.2.17       ! ID único; es la LAN-B, no la IP de un enlace
  network 192.168.2.0 0.0.0.255 area 0
  passive-interface GigabitEthernet0/0
 end
 
 ! ---------- R3 ----------
-configure terminal
+configure terminal             ! mismo proceso OSPF, con el ID de R3
 router ospf 10
- router-id 192.168.2.33
+ router-id 192.168.2.33       ! ID único; por eso se elige la IP de la LAN
  network 192.168.2.0 0.0.0.255 area 0
  passive-interface GigabitEthernet0/0
 end
@@ -81,41 +262,41 @@ que enviar hellos allí solo consume ancho de banda.
 > IP de su gateway (.1 / .17 / .33) el lab se vuelve **determinista** y lo que
 > veas en `show ip ospf neighbor` coincide con este material.
 
-### Paso 2.4 — Quitar las rutas estáticas
+### Paso 3.4 — Quitar las rutas estáticas
 
 Se **deben eliminar**, si no OSPF no podrá instalar sus rutas (la estática, más
 específica en distancia administrativa, siempre gana):
 
 ```text
 ! ---------- R1 ----------
-configure terminal
-no ip route 192.168.2.16 255.255.255.240 192.168.2.50
-no ip route 192.168.2.32 255.255.255.240 192.168.2.57
-end
+configure terminal             ! modo de configuracion global
+no ip route 192.168.2.16 255.255.255.240 192.168.2.50  ! borra la ruta a LAN-B
+no ip route 192.168.2.32 255.255.255.240 192.168.2.57  ! borra la ruta a LAN-C
+end                            ! vuelve al modo privilegiado
 
 ! ---------- R2 ----------
-configure terminal
-no ip route 192.168.2.0 255.255.255.240 192.168.2.49
-no ip route 192.168.2.32 255.255.255.240 192.168.2.54
+configure terminal             ! el `no` delante de la ruta es lo que la elimina
+no ip route 192.168.2.0 255.255.255.240 192.168.2.49   ! borra la ruta a LAN-A
+no ip route 192.168.2.32 255.255.255.240 192.168.2.54  ! borra la ruta a LAN-C
 end
 
 ! ---------- R3 ----------
-configure terminal
-no ip route 192.168.2.0 255.255.255.240 192.168.2.58
-no ip route 192.168.2.16 255.255.255.240 192.168.2.53
+configure terminal             ! si dejas las 6 rutas, OSPF no puede tomar el control
+no ip route 192.168.2.0 255.255.255.240 192.168.2.58   ! borra la ruta a LAN-A
+no ip route 192.168.2.16 255.255.255.240 192.168.2.53  ! borra la ruta a LAN-B
 end
 ```
 
 Comprobación de que ya no quedan estáticas (no debe mostrar nada):
 
 ```text
-show ip route static
+show ip route static   ! debe salir vacío: ya no hay rutas S
 ```
 
-### Paso 2.5 — Verificar la vecindad OSPF
+### Paso 3.5 — Verificar la vecindad OSPF
 
 ```text
-show ip ospf neighbor
+show ip ospf neighbor   ! lista los vecinos FULL: 2 por router (R2 y R3)
 ```
 
 ```text
@@ -137,10 +318,10 @@ show ip protocols                  ← qué protocolos de enrutamiento hay activ
 show ip ospf                       ← ID de router, áreas, SPF
 ```
 
-### Paso 2.6 — Verificar la tabla de enrutamiento
+### Paso 3.6 — Verificar la tabla de enrutamiento
 
 ```text
-show ip route
+show ip route   ! las 2 rutas remotas ya no son S (static) sino O (OSPF)
 ```
 
 ```text
@@ -165,7 +346,7 @@ Lectura de `[110/2]`:
 - **2** = métrica (costo). OSPF calcula el costo desde el ancho de banda de la
   interfaz (100 Mbps en Gig → costo 1 por salto).
 
-### Paso 2.7 — Probar conectividad
+### Paso 3.7 — Probar conectividad
 
 ```text
 show ip route 192.168.2.32        ← debe indicar OSPF en la línea install
@@ -175,7 +356,7 @@ ping 192.168.2.38
 
 Y desde los PCs, los mismos 9 pings de la Fase A deben seguir respondiendo.
 
-### Paso 2.8 — Demostrar la redundancia (prueba clave)
+### Paso 3.8 — Demostrar la redundancia (prueba clave)
 
 1. En R2: `configure terminal` → `interface GigabitEthernet0/2` → `shutdown`.
 2. Espera ~40 s y en R1 ejecuta `show ip ospf neighbor` (R2 debe salir como
@@ -189,8 +370,8 @@ R1 → R3 directo, porque OSPF recalculó la mejor ruta. Repite la prueba con
 Después restaura el enlace:
 
 ```text
-interface GigabitEthernet0/2
- no shutdown
+interface GigabitEthernet0/2   ! el enlace R1-R3, el único de R1 hacia R3
+ no shutdown                  ! simula la caída: al apagarlo, OSPF recalcula
 ```
 
 > Con rutas **estáticas** (Fase A) esta prueba también funcionaría en esta malla
@@ -198,25 +379,25 @@ interface GigabitEthernet0/2
 > concreta. En una cadena o en un escenario real, la diferencia es decisiva: el
 > estático no sabe que el enlace murió hasta que alguien lo actualiza a mano.
 
-## Parte 3 — Alternativa: RIPv2
+## Parte 4 — Alternativa: RIPv2
 
 Úsala solo si el profesor lo pide o si quieres **comparar** ambos protocolos en la
 misma topología.
 
-### Paso 3.1 — Configurar
+### Paso 4.1 — Configurar
 
 ```text
 ! ---------- R1 ----------
-configure terminal
-no router ospf 10
-router rip
- version 2
- no auto-summary
- network 192.168.2.0
-end
+configure terminal             ! modo de configuracion global
+no router ospf 10              ! apaga OSPF: esta es la alternativa a OSPF
+router rip                     ! entra al modo de configuración de RIP
+ version 2                    ! RIPv2: envía la máscara completa (VLSM lo exige)
+ no auto-summary              ! sin resumen: con /28 y /30 mezclados, resume mal
+ network 192.168.2.0          ! activa RIP en las interfaces de esa subred
+end                            ! vuelve al modo privilegiado
 
 ! ---------- R2 ----------
-configure terminal
+configure terminal             ! misma secuencia que en R1
 no router ospf 10
 router rip
  version 2
@@ -225,7 +406,7 @@ router rip
 end
 
 ! ---------- R3 ----------
-configure terminal
+configure terminal             ! misma secuencia que en R1 y R2
 no router ospf 10
 router rip
  version 2
@@ -246,10 +427,10 @@ Significado:
 > /24: RIP solo se ocupa del **enrutamiento**; el DHCP de la Parte 4 de la
 > Sesión A sigue entregando /28.
 
-### Paso 3.2 — Verificar
+### Paso 4.2 — Verificar
 
 ```text
-show ip route
+show ip route   ! ahora las rutas remotas son R (RIP), no O ni S
 ```
 
 ```text
@@ -261,11 +442,11 @@ R        192.168.2.32/28 [120/1] via 192.168.2.57, 00:00:12
 ```
 
 ```text
-show ip protocols
-show ip rip database
+show ip protocols       ! confirma que RIP es el único protocolo activo
+show ip rip database      ! las rutas RIP aprendidas y por qué interfaz
 ```
 
-### Paso 3.3 — OSPF vs RIPv2 en esta topología
+### Paso 4.3 — OSPF vs RIPv2 en esta topología
 
 | Característica | OSPF (área 0) | RIPv2 |
 |----------------|---------------|-------|
@@ -280,15 +461,15 @@ show ip rip database
 En Packet Tracer, RIPv2 puede tardar **1-3 minutos** en muncul en la tabla: es
 normal, no es una falla.
 
-Para volver a OSPF: `no router rip` y volver a la Parte 2.
+Para volver a OSPF: `no router rip` y volver a la Parte 3.
 
-## Parte 4 — Verificación final (checklist)
+## Parte 5 — Verificación final (checklist)
 
 | # | Comando | Dónde | Resultado esperado |
 |---|---------|-------|--------------------|
 | 1 | `show ip interface brief` | R1, R2, R3 | 3 interfaces `up/up` con IP |
 | 2 | `show ip dhcp pool` | R1, R2, R3 | `Network` con la máscara /28 correcta |
-| 3 | `show ip dhcp binding` | R1, R2, R3 | 3 leases en el rango asignable |
+| 3 | `show ip dhcp binding` | R1, R2, R3 | 3 leases: 2 del pool VLAN 10 y 1 del de VLAN 20 |
 | 4 | `ipconfig /all` | 1 PC de cada LAN | IP del pool + máscara /28 + gateway correcto |
 | 5 | `ping 192.168.2.1` | PC propio | OK (gateway) |
 | 6 | `ping` a otra LAN | PC | OK (enrutamiento) |
@@ -296,8 +477,13 @@ Para volver a OSPF: `no router rip` y volver a la Parte 2.
 | 8 | `show ip ospf neighbor` | R1, R2, R3 | 2 vecinos en `FULL` |
 | 9 | `show ip route static` | R1, R2, R3 | Vacío |
 | 10 | Prenda de un enlace | R2 | Ping entre sedes sigue OK (redundancia) |
+| 11 | `show vlan brief` | SW1, SW2, SW3 | VLAN 10 y 20, con Fa0/4 en la 20 |
+| 12 | `show interfaces trunk` | SW1, SW2, SW3 | Fa0/1 trunca, native VLAN 10, allowed 10,20 |
+| 13 | `show ip interface brief` | R1, R2, R3 | `Gi0/0` y `Gi0/0.20` con IP /28 cada una |
+| 14 | `show ip dhcp pool` | R1, R2, R3 | 2 pools por router: el de la VLAN 10 y el de la 20 |
+| 15 | `ipconfig /all` | PC-A3, PC-B3, PC-C3 | IP del pool de la VLAN 20 y gateway de esa VLAN |
 
-## Parte 5 — Troubleshooting: los 8 errores típicos
+## Parte 6 — Troubleshooting: los 8 errores típicos
 
 | Síntoma | Causa probable | Solución |
 |---------|----------------|----------|
@@ -315,9 +501,9 @@ Para volver a OSPF: `no router rip` y volver a la Parte 2.
 Si un router quedó mal configurado y no sabes qué corregir:
 
 ```text
-enable
-erase startup-config
-reload          → responde "yes" cuando pregunte
+enable                ! modo privilegiado: sin esto el router no deja borrar nada
+erase startup-config  ! borra la config de arranque; deja el router como de fábrica
+reload                ! reinicia y aplica el borrado; responde yes cuando pregunte
 ```
 
 Vuelve a la Parte 3 de la Sesión A y reingresa la configuración.

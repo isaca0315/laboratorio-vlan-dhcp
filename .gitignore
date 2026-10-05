@@ -11,3 +11,5 @@ Thumbs.db
 *.swp
 __pycache__/
 *.pyc
+tools/build_teoria_lab.py
+Teoria-Lab-VLSM-DHCP.pptx

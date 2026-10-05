@@ -49,10 +49,8 @@ def build(out):
               ["—", "Cierre", "Verificación, límites de PT y repaso", "4"]],
           0.45, 1.40, 12.4, col_w=[0.7, 3.3, 7.3, 1.1], size=12.5, row_h=0.40)
     callout(s, 0.45, 4.85, 12.4, 1.85, "La idea que sostiene todo el laboratorio", [
-        "Una red no es «un switch con todos juntos»: es **segmentar** con las direcciones justas,",
-        "**servir** esas direcciones automáticamente, y **conectar** los segmentos con rutas.",
-        "Cada capa depende de la anterior: si la máscara está mal, DHCP entrega direcciones",
-        "imposibles y el enrutamiento ni siquiera se intentará."], ORANGE, 12.5)
+        "Una red no es «un switch con todos juntos»: es **segmentar** con las direcciones justas, **servir** esas direcciones automáticamente, y **conectar** los segmentos con rutas.",
+        "Cada capa depende de la anterior: si la máscara está mal, DHCP entrega direcciones imposibles y el enrutamiento ni siquiera se intentará."], ORANGE, 12.5)
     notes(s, "⏱ 3-4 min · Mapa de la clase.\n\n"
              "Señala que el orden importa: no se puede entender DHCP sin la máscara,\n"
              "ni el enrutamiento sin el gateway.\n"
@@ -84,8 +82,7 @@ def build(out):
     callout(s, 0.45, 4.90, 5.85, 1.75, "El reparto lo decide la máscara, no el número", [
         "Con 192.168.2.1 y máscara /24, los 3 primeros octetos son red.",
         "Con la misma IP y máscara /28, el 4.º octeto empieza a ser de red también.",
-        "Por eso «cuántos equipos caben» no es una propiedad de la IP:",
-        "es una propiedad de la IP **más** su máscara."], TEAL, 12)
+        "Por eso «cuántos equipos caben» no es una propiedad de la IP: es una propiedad de la IP **más** su máscara."], TEAL, 12)
     text(s, 6.75, 1.40, 6.15, 0.4, "Anatomía de una subred", size=16, color=NAVY, bold=True)
     table(s, [["Elemento", "En 192.168.2.0/28", "Para qué sirve"],
               ["Dirección de red", ".0", "Identifica la subred"],
@@ -97,8 +94,7 @@ def build(out):
     callout(s, 6.75, 4.90, 6.15, 1.75, "Las clases ya no se usan", [
         "La dirección «dice» su clase por el primer octeto (A, B, C).",
         "Hoy nadie usa clases: el tamaño de la red lo dice **el prefijo**.",
-        "Por eso 192.168.2.0 puede dividirse en 6 subredes de tamaños distintos",
-        "sin que nada contradiga el «diseño original»."], NAVY, 12)
+        "Por eso 192.168.2.0 puede dividirse en 6 subredes de tamaños distintos sin que nada contradiga el «diseño original»."], NAVY, 12)
     notes(s, "⏱ 5-7 min.\n\n"
              "Insiste en que la IP sola no dice nada: hace falta la máscara.\n"
              "Mismo número, distinta máscara, distinta red.\n"
@@ -145,10 +141,8 @@ def build(out):
          0.45, 1.45, 12.4, h=1.15)
     text(s, 0.45, 2.95, 6.1, 0.4, "Los dos que se pierden", size=15, color=NAVY, bold=True)
     bullets(s, [
-        "La **dirección de red** identifica la subred. Si un equipo la toma, el",
-        "tráfico hacia el resto de la LAN se rompe.",
-        "La **dirección de broadcast** habla a todos los equipos a la vez. Es",
-        "para difusión, no para un equipo concreto.",
+        "La **dirección de red** identifica la subred. Si un equipo la toma, el tráfico hacia el resto de la LAN se rompe.",
+        "La **dirección de broadcast** habla a todos los equipos a la vez. Es para difusión, no para un equipo concreto.",
     ], 0.45, 3.40, 6.1, 13, 6, h=1.35)
     callout(s, 0.45, 4.85, 6.1, 1.85, "Cuidado con el truco", [
         "Para elegir bits de host hay que contar los dos direcciones extra:",
@@ -164,8 +158,7 @@ def build(out):
               ["2", "2^2 − 2 = 2", "2", "/30", "Sí"]],
           6.75, 3.40, 6.15, col_w=[1.0, 1.65, 0.6, 1.05, 1.85], size=11.5, row_h=0.4)
     callout(s, 6.75, 5.88, 6.15, 1.15, "Regla del laboratorio", [
-        "Se elige **el prefijo más corto que cumple**. Un /27 también serviría",
-        "para 10 equipos, pero tiraría 16 direcciones por LAN."], GREEN, 12)
+        "Se elige **el prefijo más corto que cumple**. Un /27 también serviría para 10 equipos, pero tiraría 16 direcciones por LAN."], GREEN, 12)
     notes(s, "⏱ 9-12 min · el corazón del cálculo.\n\n"
              "Si algo no queda claro, volver aquí.\n"
              "\n"
@@ -201,8 +194,7 @@ def build(out):
         "VLSM es lo que hace posible el diseño."], RED, 12.5)
     callout(s, 6.75, 3.68, 6.15, 1.5, "Con VLSM sobra", [
         "60 direcciones usadas de 256 → **76 % libre**.",
-        "Ese margen es el que permite crecer: añadir una subred /28 en .60",
-        "sin rehacer el direccionamiento."], GREEN, 12.5)
+        "Ese margen es el que permite crecer: añadir una subred /28 en .60 sin rehacer el direccionamiento."], GREEN, 12.5)
     text(s, 0.45, 5.30, 12.4, 0.4, "El método en 6 pasos", size=15, color=NAVY, bold=True)
     flow(s, [("1 Ordena", "de mayor\na menor"),
              ("2 Bits", "2^h ≥ nece-\nsidad + 2"),
@@ -269,8 +261,7 @@ def build(out):
             ("196", "libres"), ("77%", "libre")], 0.45, 4.35, 12.4, 1.0)
     callout(s, 0.45, 5.45, 6.1, 1.4, "Cómo se verifica sin calculadora", [
         "Suma bloques: 3×16 + 3×4 = **60**.",
-        "La siguiente posición libre es .60: es múltiplo de 16 y de 4 →",
-        "cabe otra subred. Si no fuera múltiplo, el diseño estaría mal."], TEAL, 12)
+        "La siguiente posición libre es .60: es múltiplo de 16 y de 4 → cabe otra subred. Si no fuera múltiplo, el diseño estaría mal."], TEAL, 12)
     callout(s, 6.75, 5.45, 6.15, 1.4, "Reparto interno de cada LAN", [
         "En LAN-A: `.1` gateway, `.2`–`.5` reservadas, `.6`–`.14` para DHCP.",
         "Hoy solo 3 PCs usan ese rango; las otras 6 direcciones quedan libres.",
@@ -302,8 +293,7 @@ def build(out):
         "Se previene con `ip dhcp excluded-address`."], RED, 12)
     callout(s, 6.75, 5.00, 6.15, 1.6, "El más sutil: .15 como red", [
         "`.15` es el broadcast de `192.168.2.0/28`, no un host.",
-        "La siguiente subred empieza en `.16`, siempre en el siguiente",
-        "múltiplo del bloque. Never divide el espacio sin mirar la alineación."], ORANGE, 12)
+        "La siguiente subred empieza en `.16`, siempre en el siguiente múltiplo del bloque. Never divide el espacio sin mirar la alineación."], ORANGE, 12)
     notes(s, "⏱ 22-25 min.\n\n"
              "No leer los 6: elegir 2 y preguntar el síntoma. El de 'no excluir el\n"
              "gateway' es el que más daño hace y el más difícil de diagnosticar.\n"
@@ -385,14 +375,12 @@ def build(out):
           0.45, 1.40, 12.4, col_w=[4.4, 5.0, 3.0], size=12.5, row_h=0.44)
     callout(s, 0.45, 3.68, 6.1, 1.75, "Por qué recto y no crossover", [
         "Crossover se usaba entre dos dispositivos **iguales**.",
-        "Como aquí todos los pares son distintos (router-switch, PC-switch),",
-        "basta el recto.",
+        "Como aquí todos los pares son distintos (router-switch, PC-switch), basta el recto.",
         "Además el 2911 tiene **auto-MDIX**: negocia solo y acepta ambos.",
         "En PT puedes elegir crossover y también funcionaría."], TEAL, 12)
     callout(s, 6.75, 3.68, 6.15, 1.75, "Por qué no Serial", [
         "El cable serial es de WAN: entre routers **no adyacentes**.",
-        "Si lo usas, el lado DCE necesita `clock rate 64000` o el enlace no",
-        "levanta: sin reloj no hay señal.",
+        "Si lo usas, el lado DCE necesita `clock rate 64000` o el enlace no levanta: sin reloj no hay señal.",
         "Requiere instalar el módulo HWIC-2T con el router apagado.",
         "En este lab el gigabit basta y es más simple."], NAVY, 12)
     callout(s, 0.45, 5.52, 12.4, 1.50, "Lo primero que se ve mal: las luces", [
@@ -427,8 +415,7 @@ def build(out):
     callout(s, 6.75, 3.20, 6.15, 1.75, "ARP es solo local", [
         "ARP nunca cruza un router. Se resuelve **por segmento**.",
         "Cada router hace su propio ARP hacia su siguiente salto.",
-        "Por eso en cada /30 solo se ve tráfico entre los 2 extremos:",
-        "nadie más existe en ese cable."], TEAL, 12)
+        "Por eso en cada /30 solo se ve tráfico entre los 2 extremos: nadie más existe en ese cable."], TEAL, 12)
     code(s, 0.45, 5.25, 12.4, 1.55,
          [("PC-A> arp -a          R1> show ip arp", ORANGE),
           ("  192.168.2.1   0000.0c29.5b11.22   ARPA   LAN-A R1-Gig0/0", GRAY),
@@ -488,15 +475,12 @@ def build(out):
           0.45, 1.40, 12.4, col_w=[1.0, 2.2, 2.6, 2.1, 4.5], size=11.5, row_h=0.48)
     callout(s, 0.45, 3.80, 6.1, 1.70, "El Request parece redundante", [
         "Si hay varios servidores, el **servidor** gana por prioridad.",
-        "En un cliente que ya tiene dirección, el Request",
-        "pide **renovar** la misma, y el tiempo se reinicia.",
+        "En un cliente que ya tiene dirección, el Request pide **renovar** la misma, y el tiempo se reinicia.",
         "Por eso renovar es más rápido que obtenerla por primera vez."], TEAL, 12)
     callout(s, 6.75, 3.80, 6.15, 1.85, "Los puertos que lo hacen funcionar", [
         "Cliente UDP **68**, servidor UDP **67**.",
-        "El Offer del servidor va a .68 porque en ese",
-        "momento el cliente aún no tiene IP.",
-        "El Discover va a 255.255.255.255: aún no hay IP,",
-        "así que no puede usar un unicast."], NAVY, 12)
+        "El Offer del servidor va a .68 porque en ese momento el cliente aún no tiene IP.",
+        "El Discover va a 255.255.255.255: aún no hay IP, así que no puede usar un unicast."], NAVY, 12)
     callout(s, 0.45, 5.75, 12.4, 1.25, "Dónde ver cada paso en Packet Tracer", [
         "Abrir **Simulation** (Alt+Shift+S), poner un filtro por protocolo `bootpc`/`DHCP` y ver las 4 ventanas.",
         "El paso 1 y el 3 salen del PC; el 2 y el 4, del router. El nombre de la "
@@ -636,10 +620,8 @@ def build(out):
           0.45, 1.80, 12.4, col_w=[3.9, 3.4, 3.4, 1.7], size=11.5, row_h=0.46)
     callout(s, 0.45, 3.65, 12.4, 1.85, "La trampa: la tabla parece correcta y aun así no hay respuesta", [
         "Cada router por separado **sí** tiene la ruta de salida hacia el otro.",
-        "Falta la de vuelta: el paquete llega al destino, pero el destino no sabe",
-        "regresar. El ping se ve como «timeout» aunque la ruta de ida exista.",
-        "Por eso el `ping` de verificación se hace **desde el router**, con la IP de la",
-        "interfaz de salida, no solo desde el PC."], RED, 12)
+        "Falta la de vuelta: el paquete llega al destino, pero el destino no sabe regresar. El ping se ve como «timeout» aunque la ruta de ida exista.",
+        "Por eso el `ping` de verificación se hace **desde el router**, con la IP de la interfaz de salida, no solo desde el PC."], RED, 12)
     callout(s, 0.45, 5.55, 12.4, 1.50, "El ping que sí prueba el camino completo", [
         "**ping desde el PC** de origen hacia el PC destino: prueba ida y vuelta.",
         "**ping desde el router** con su IP de salida: prueba solo la ruta de ese router.",
@@ -669,8 +651,7 @@ def build(out):
           0.45, 1.40, 12.4, col_w=[1.9, 6.4, 4.1], size=12, row_h=0.42)
     callout(s, 0.45, 5.20, 6.1, 1.80, "Por qué pasiva la interfaz de la LAN", [
         "Gi0/0 de cada router va al switch de su LAN, donde están los **3 PCs**.",
-        "Si la interfaz mandara hellos, los PCs recibirían paquetes OSPF",
-        "que no entienden y la red se inundaría.",
+        "Si la interfaz mandara hellos, los PCs recibirían paquetes OSPF que no entienden y la red se inundaría.",
         "`passive-interface` anuncia la red pero silencia el hello: es lo correcto."], TEAL, 12)
     callout(s, 6.75, 5.20, 6.15, 1.80, "Qué se gana con OSPF en este lab", [
         "Los 3 routers **aprendan** las rutas de los otros, no hay que escribirlas.",
@@ -697,8 +678,7 @@ def build(out):
           ("R1(config-router)# network 192.168.2.0", GRAY),
           ("R1(config-router)# no auto-summary", ORANGE)], 11.5)
     callout(s, 0.45, 3.30, 6.1, 1.85, "Por qué `no auto-summary` no es opcional aquí", [
-        "Con VLSM en la red, el resumen automático **manda 192.168.2.0/24**",
-        "en lugar de las subredes correctas.",
+        "Con VLSM en la red, el resumen automático **manda 192.168.2.0/24** en lugar de las subredes correctas.",
         "El vecino recibe una ruta que no corresponde y descarta la información real.",
         "Con `no auto-summary` se difunden las subredes con su máscara real.",
         "Es uno de los errores clásicos del protocolo RIP con VLSM."], RED, 12)
