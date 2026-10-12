@@ -1,0 +1,45 @@
+! =====================================================================
+! SW1 - Switch de la SEDE CENTRAL
+! Laboratorio 13 - Sesion B (independiente)
+! VLAN 10 = usuarios | VLAN 20 = invitados
+! =====================================================================
+
+enable
+configure terminal
+!
+hostname SW1-CENTRAL
+!
+! --- Crear las VLAN del sitio ---
+vlan 10
+ name USUARIOS-CENTRAL
+vlan 20
+ name INVITADOS-CENTRAL
+!
+! --- TRUNK hacia R1 Gi0/0 (router-on-a-stick) ---
+interface FastEthernet0/1
+ switchport mode trunk
+ switchport trunk native vlan 10
+ switchport trunk allowed vlan 10,20
+!
+! --- ACCESO: PC-A1 y PC-A2 en VLAN 10 (usuarios) ---
+interface FastEthernet0/2
+ switchport mode access
+ switchport access vlan 10
+interface FastEthernet0/3
+ switchport mode access
+ switchport access vlan 10
+!
+! --- ACCESO: PC-A3 en VLAN 20 (invitados) ---
+interface FastEthernet0/4
+ switchport mode access
+ switchport access vlan 20
+!
+end
+copy running-config startup-config
+
+! =========================================================
+! VERIFICACIONES
+! =========================================================
+! show vlan brief
+! show interfaces trunk
+! show running-config interface FastEthernet0/1

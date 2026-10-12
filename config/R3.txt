@@ -1,20 +1,20 @@
 ! =====================================================================
-! R3 - SEDE C (LAN-C 192.168.2.32/28)
-! Laboratorio 13 - VLSM + DHCP + Enrutamiento
+! R3 - SUCURSAL 2 (192.168.2.32/28 usuarios + .96/28 invitados)
+! Laboratorio 13 - Sesion B (independiente): VLANs + DHCP + OSPF
 ! Pegar en la CLI del router: modo exec -> enable -> configure terminal
-! (o pegar direto desde el prompt R3>)
+! (o pegar directo desde el prompt R3>)
 ! =====================================================================
 
 enable
 configure terminal
 !
 ! --- Identificacion del equipo ---
-hostname R3-SEDE-C
+hostname R3-SUCURSAL-2
 no ip domain-lookup
 enable secret cisco
 service password-encryption
 !
-banner motd @ R3-SEDE-C - Laboratorio 13 VLSM/DHCP/OSPF @
+banner motd @ R3-SUCURSAL-2 - Lab 13 Sesion B OSPF @
 
 ! --- Lineas de acceso ---
 line console 0
@@ -25,60 +25,68 @@ line vty 0 4
  login
  transport input ssh
 !
-! --- Interfaz LAN-C (gateway de la sede) ---
+! --- LAN usuarios (VLAN 10) - gateway de la sucursal 2 ---
 interface GigabitEthernet0/0
- description LAN-C - Gateway 192.168.2.33/28
+ description SUCURSAL-2 - Usuarios VLAN10 GW 192.168.2.33/28
  ip address 192.168.2.33 255.255.255.240
  no shutdown
 !
-! --- Enlace punto a punto con R2 ---
-interface GigabitEthernet0/1
- description P2P R2-R3 - Red 192.168.2.52/30
- ip address 192.168.2.54 255.255.255.252
+! --- LAN invitados (VLAN 20) - router-on-a-stick ---
+interface GigabitEthernet0/0.20
+ description SUCURSAL-2 - Invitados VLAN20 GW 192.168.2.97/28
+ encapsulation dot1Q 20
+ ip address 192.168.2.97 255.255.255.240
  no shutdown
 !
-! --- Enlace punto a punto con R1 ---
+! --- RESPALDO a R2 (sucursal 1) - costo alto, solo emergencia ---
+interface GigabitEthernet0/1
+ description Respaldo a SUC-1 - Red 192.168.2.52/30 (R2=.53, R3=.54)
+ ip address 192.168.2.54 255.255.255.252
+ ip ospf cost 100
+ no shutdown
+!
+! --- UPLINK a R1 (sede central) - camino primario ---
 interface GigabitEthernet0/2
- description P2P R3-R1 - Red 192.168.2.56/30
+ description Uplink a CENTRAL - Red 192.168.2.56/30 (R3=.57, R1=.58)
  ip address 192.168.2.57 255.255.255.252
  no shutdown
 !
 ! =========================================================
-! DHCP SERVER para LAN-C
-! Excluidas: .33 (gateway) y .34-.37 (IP fija administrativa)
-! Pool asignable: 192.168.2.38 - 192.168.2.46
+! DHCP SERVER por VLAN
+! VLAN 10: excluidas .33 (gateway) y .34-.37 (fijas admin)
+!          pool asignable: .38 - .46
+! VLAN 20: excluidas .97 (gateway) y .98-.101 (fijas admin)
+!          pool asignable: .102 - .110
 ! =========================================================
 ip dhcp excluded-address 192.168.2.33 192.168.2.37
-!
-ip dhcp pool LAN-C
+ip dhcp pool LAN-SUC2
  network 192.168.2.32 255.255.255.240
  default-router 192.168.2.33
  dns-server 8.8.8.8
  domain-name lab-utp.pa
-! (lease 1 no existe en el 2911 de Packet Tracer 9.0.1: es valido en
-!  IOS real pero PT lo rechaza. El alquiler por defecto de 1 dia ya
-!  se aplica solo.)
+exit
+!
+ip dhcp excluded-address 192.168.2.97 192.168.2.101
+ip dhcp pool VLAN20-SUC2
+ network 192.168.2.96 255.255.255.240
+ default-router 192.168.2.97
+ dns-server 8.8.8.8
+ domain-name lab-utp.pa
 exit
 !
 ! =========================================================
-! FASE A - ENRUTAMIENTO ESTATICO
-! OJO: el enlace con R1 es Gi0/2, donde R3 es .57 y R1 es .58.
-! LAN-A (.0/28) via R1 (.58) | LAN-B (.16/28) via R2 (.53)
+! OSPF AREA 0 - unico protocolo (no hay rutas estaticas)
+! El respaldo a R2 tiene costo 100: el camino primario a la
+! central queda por R1 y el enlace R2-R3 solo se usa si algo falla.
 ! =========================================================
-ip route 192.168.2.0 255.255.255.240 192.168.2.58
-ip route 192.168.2.16 255.255.255.240 192.168.2.53
+router ospf 10
+ router-id 192.168.2.33
+ network 192.168.2.0 0.0.0.255 area 0
+ passive-interface GigabitEthernet0/0
+ passive-interface GigabitEthernet0/0.20
 !
 ! =========================================================
-! FASE B - OSPF AREA 0 (desactivar la Fase A antes)
-! =========================================================
-! router ospf 10
-!  network 192.168.2.0 0.0.0.255 area 0
-!  passive-interface GigabitEthernet0/0
-!  no ip route 192.168.2.0 255.255.255.240 192.168.2.58
-!  no ip route 192.168.2.16 255.255.255.240 192.168.2.53
-!
-! =========================================================
-! FASE B (alternativa) - RIPv2
+! Alternativa RIPv2 (para comparar en la Parte 9)
 ! =========================================================
 ! no router ospf 10
 ! router rip
@@ -96,7 +104,7 @@ copy running-config startup-config
 ! show ip dhcp pool
 ! show ip dhcp binding
 ! show ip route
-! show ip route static
+! show ip route 192.168.2.16    -> via R1 (.58) normal; via R2 (.53) con uplink caido
 ! show ip ospf neighbor
 ! show ip protocols
 ! ping 192.168.2.6
