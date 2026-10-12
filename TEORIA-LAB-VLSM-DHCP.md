@@ -1,50 +1,3 @@
-# Teoría del Laboratorio N.º 13 — VLSM, DHCP y enrutamiento
-
-> Contenido completo de [`Teoria-Lab-VLSM-DHCP.pptx`](Teoria-Lab-VLSM-DHCP.pptx)
-> (31 diapositivas, 16:9). Este archivo es el volcado textual de la presentación:
-> mismo contenido y mismo orden de lectura, sin depender de PowerPoint.
->
-> Se regenera con:
-> `python3 tools/dump_ppt_md.py Teoria-Lab-VLSM-DHCP.pptx`
->
-> Cada diapositiva conserva sus **notas del orador** al final, en bloques
-> plegables: en GitHub y en la mayoría de editores se despliegan con un clic.
-
-## Índice
-
-- **1.** Teoría del Laboratorio N.º 13
-- **2.** Qué vamos a ver
-- **3.** Dirección IP y máscara
-- **4.** Qué es una dirección IP
-- **5.** Máscara de subred y prefijo
-- **6.** La fórmula 2^h − 2
-- **7.** VLSM
-- **8.** VLSM: una máscara por necesidad
-- **9.** Los dos requisitos del laboratorio
-- **10.** Las 6 subredes del laboratorio
-- **11.** Los 6 errores típicos de subneteo
-- **12.** Switch, router y cable
-- **13.** Switch y router: no son intercambiables
-- **14.** Por qué una malla de 3 routers
-- **15.** Ethernet y cables de cobre
-- **16.** ARP: cómo el PC encuentra al gateway
-- **17.** DHCP
-- **18.** Por qué DHCP y no IP fija
-- **19.** El DORA, paso a paso
-- **20.** El pool y sus exclusiones
-- **21.** Enrutamiento
-- **22.** La tabla de enrutamiento
-- **23.** Rutas estáticas
-- **24.** Ping: necesita ruta de ida y de vuelta
-- **25.** OSPF: los routers se cuentan entre sí
-- **26.** RIPv2 y el resumen automático
-- **27.** Redundancia: qué pasa cuando algo falla
-- **28.** Verificar es parte de la teoría
-- **29.** Los límites de Packet Tracer 9.0.1
-- **30.** Checklist del laboratorio
-- **31.** Repaso: lo que hay que saber
-
----
 
 ## 1. Teoría del Laboratorio N.º 13
 
@@ -96,8 +49,9 @@ redes usan /28 y otras /30? La respuesta está en el bloque 2.
 
 Señala que el orden importa: no se puede entender DHCP sin la máscara,
 ni el enrutamiento sin el gateway.
-Deja claro que casi todo lo que vemos es teoría de la Sesión A; OSPF es
-lo único de la Sesión B.
+Esta teoría sirve a las dos sesiones: la Sesión A construye la malla con
+estáticas y OSPF (Fase B); la Sesión B, independiente, monta su propia
+red sede central + sucursales con VLANs y OSPF directo.
 
 </details>
 
@@ -1020,7 +974,7 @@ R1, no desde el PC.
 | LSDB | La base de datos con todas las redes conocidas | `show ip ospf database` |
 | SPF | Algoritmo (Dijkstra) que calcula el camino más corto | Calcula la ruta de menor costo |
 | Hellos | Paquetes cada 10 s para saber si el vecino sigue vivo | `show ip ospf neighbor` |
-| Estado FULL | Los dos vecinos se reconhecieron | Debe verse FULL en los 3 |
+| Estado FULL | Los dos vecinos se reconocieron | Debe verse FULL en los 3 routers (2 vecinos c/u) |
 | Passive | La interfaz anuncia la red pero no manda hellos | Gi0/0 de cada router es pasiva |
 
 **Por qué pasiva la interfaz de la LAN**
@@ -1029,10 +983,10 @@ R1, no desde el PC.
 - `passive-interface` anuncia la red pero silencia el hello: es lo correcto.
 
 **Qué se gana con OSPF en este lab**
-- Los 3 routers **aprendan** las rutas de los otros, no hay que escribirlas.
+- Los 3 routers **aprenden** las rutas de los otros, no hay que escribirlas.
 - Si un enlace cae, se recalcula y el tráfico va por el otro.
-- `show ip ospf neighbor` debe dar 3 vecinos FULL.
-- En la Sesión B se quita una estática y se ve la ruta OSPF (`O`).
+- `show ip ospf neighbor` debe dar 2 vecinos FULL por router.
+- En la Sesión A hay que quitar las estáticas; la Sesión B es independiente y activa OSPF directo (`O` en la tabla).
 
 <details><summary>Notas del orador</summary>
 
@@ -1111,10 +1065,10 @@ Con la malla completa, cada par de LANs tiene **dos caminos**. Esto es lo que se
 | Vuelve el enlace | Manual: rehacer la ruta | Automático, recalcula |
 
 **La demostración de la Sesión B, en orden**
-- 1. `show ip ospf neighbor` → los 3 vecinos en **FULL**.
-- 2. Borrar la ruta estática a LAN-C en R1 → el ping **sigue** funcionando.
-- 3. `show ip route` → la ruta a LAN-C ahora aparece con código **O**, no S.
-- 4. Apagar un enlace → el tráfico sigue por el camino que queda.
+- 1. `show ip ospf neighbor` → los 2 vecinos en **FULL**.
+- 2. Apagar el uplink con `shutdown` en R1 Gi0/1 → el ping de la sucursal **sigue** funcionando.
+- 3. `show ip route 192.168.2.0` en R2 → ahora `[110/102] via 192.168.2.54` (respaldo R2→R3→R1).
+- 4. `no shutdown` → el camino vuelve solo al uplink de costo bajo.
 
 **El mensaje que hay que llevarse**
 - Las rutas estáticas no tienen «plan B»: si una falta, el tráfico se cae.
@@ -1125,10 +1079,13 @@ Con la malla completa, cada par de LANs tiene **dos caminos**. Esto es lo que se
 ⏱ 55-57 min.
 
 Esta diapositiva es el puente directo con la Sesión B: los 4 pasos son
-literalmente lo que se hace al final del laboratorio.
+literalmente lo que se hace al final del laboratorio independiente.
 
-El paso 2 es el que convence: si el ping sigue funcionando sin la
-estática, es porque OSPF ya tenía esa ruta aprendida.
+El paso 2 es el que convence: con el uplink apagado, el tráfico de la
+sucursal sale por el respaldo (R2→R3→R1) y el costo salta de 2 a 102.
+
+En la Sesión A, el contraste equivalente es quitar una estática y ver que
+OSPF ya tenía la ruta aprendida (`O` en vez de `S`).
 
 Aviso: si el ping falla en el paso 2, es que OSPF no converge. Revisar
 network, router-id y que los 3 estén en área 0.
@@ -1148,7 +1105,7 @@ network, router-id y que los 3 estén en área 0.
 | show ip dhcp binding | ¿A quién se le entregó una IP? | Leases .22 – .30 en LAN-B |
 | show ip dhcp server statistics | ¿Cuántos DORA hubo? | DISCOVER, OFFER, REQUEST, ACK |
 | show ip arp | ¿Quién está en mi LAN? | IP ↔ MAC de los vecinos |
-| show ip ospf neighbor | ¿Se conocen los routers? | 3 vecinos en estado FULL |
+| show ip ospf neighbor | ¿Se conocen los routers? | 2 vecinos en estado FULL |
 | show ip route ospf | ¿Qué rutas aprendió OSPF? | Rutas con código O |
 | show ip protocols | ¿Qué protocolos corren? | OSPF en área 0, RIP si aplica |
 
@@ -1222,7 +1179,7 @@ escrito, es que no existe en esa versión.
 | 6 | `ipconfig /renew` en los PCs | 4 | Leases .22 – .30 en LAN-B |
 | 7 | Ping al gateway y a la otra LAN | 5 | Ida y vuelta en ambos sentidos |
 | 8 | Rutas estáticas hacia la tercera LAN | 5 | Los 3 se alcanzan entre sí |
-| 9 | OSPF área 0 + router-id | 5 | 3 vecinos FULL |
+| 9 | OSPF área 0 + router-id | 5 | 2 vecinos FULL por router |
 | 10 | Borrar una estática y reintentar | 5 | El ping sigue, ahora por OSPF |
 
 **El orden importa más de lo que parece**
@@ -1273,3 +1230,5 @@ La 3 y la 4 son las que más se confunden en la práctica: distinguen
 un problema de capa 2 de uno de capa 3.
 
 </details>
+
+---

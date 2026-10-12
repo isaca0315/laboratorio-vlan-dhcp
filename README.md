@@ -4,13 +4,18 @@ Unidad III · Capa de red · **Cisco Packet Tracer**
 
 ## Objetivo general
 
-Diseñar e implementar una red de 3 sedes (LAN-A, LAN-B, LAN-C) sobre la red base
-`192.168.2.0/24`, aplicando **subneteo VLSM**, configuring **DHCP** en cada router
-y dos fases de enrutamiento (**estático → dinámico con OSPF/RIPv2**).
+El laboratorio tiene **dos sesiones independientes** sobre la red base
+`192.168.2.0/24`, aplicando **subneteo VLSM** y **DHCP**:
+
+- **Sesión A** — malla de 3 sedes (LAN-A/B/C): VLSM, DHCP y dos fases de
+  enrutamiento (**estático → dinámico con OSPF/RIPv2**).
+- **Sesión B** — red corporativa **sede central + 2 sucursales** (hub-and-spoke)
+  montada desde cero: VLAN 10/20, DHCP por VLAN y **OSPF área 0 directo** (sin
+  rutas estáticas) con prueba de redundancia.
 
 Al terminar sabrás calcular un plan de direccionamiento sin desperdicio,
-configurar un router como servidor DHCP y verificar el comportamiento de la red
-con comandos de diagnóstico.
+configurar un router como servidor DHCP por VLAN y verificar el comportamiento
+de la red con comandos de diagnóstico.
 
 ## Materiales
 
@@ -19,7 +24,8 @@ con comandos de diagnóstico.
 - Referencias: [`SUBNETEO.md`](SUBNETEO.md) (máscaras),
   [`COMANDOS.md`](COMANDOS.md) (qué hace cada comando),
   [`DIAGRAMAS.md`](DIAGRAMAS.md) (diagramas para draw.io).
-- CLI de los tres routers en `config/` (copiar y pegar).
+- Configs de routers y switches en `config/` (copiar y pegar): `R1.txt`…`R3.txt`,
+  `SW1.txt`…`SW3.txt`.
 - Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
 - Cálculo de subneteo VLSM en [`SUBNETEO.md`](SUBNETEO.md).
 - Qué hace cada comando en [`COMANDOS.md`](COMANDOS.md).
@@ -44,12 +50,25 @@ orador incluidas.
 Se regenera con `python3 tools/build_teoria_lab.py`. El layout se verifica con
 `python3 tools/check_layout.py Teoria-Lab-VLSM-DHCP.pptx`.
 
+### Sesión B (presentación de práctica)
+
+[`Sesion-B.pptx`](Sesion-B.pptx) — 26 diapositivas (16:9) con notas del orador y
+minutaje, en el mismo sistema de diseño que la teoría. Sigue el orden de la
+Sesión B (laboratorio independiente): escenario hub-and-spoke, plan VLSM de
+referencia, VLAN y router-on-a-stick con DHCP por VLAN, OSPF área 0 con costes,
+prueba de redundancia, alternativa RIPv2, checklist final y los 8 errores
+típicos.
+
+Se regenera con `python3 tools/build_sesion_b.py Sesion-B.pptx` y el layout se
+verifica con `python3 tools/check_layout.py Sesion-B.pptx`. El volcado en texto
+plano está en [`SESION-B-PPT.md`](SESION-B-PPT.md).
+
 ## Cómo se trabaja esta sesión
 
 | Sesión | Qué haces | Entregable breve | Guía |
 |--------|-----------|------------------|------|
 | **Sesión A** — Topología, VLSM, DHCP y rutas estáticas | Montar la topología (1), calcular el VLSM (2), configurar interfaces y DHCP en los 3 routers (3), configurar rutas estáticas (4) y verificar el DHCP en los PCs (5). | Tabla de direccionamiento completa + `show ip dhcp binding` con 3 leases por router + pings cruzados OK en Fase A. | [Sesión A](SESION-A.md) |
-| **Sesión B** — Enrutamiento dinámico y diagnóstico | Quitar las estáticas (1), configurar OSPF área 0 (2), alternativa RIPv2 (3), verificar con `show ip route`/`show ip ospf neighbor` (4) y diagnosticar fallas (5). | `show ip route` con rutas `O`, `show ip ospf neighbor` en FULL y pings OK **con un enlace caído**. | [Sesión B](SESION-B.md) |
+| **Sesión B** — Red corporativa con OSPF (independiente) | Montar la topología sede central + 2 sucursales (1), plan VLSM de referencia (2), VLAN 10/20 y DHCP por VLAN (3-5), OSPF área 0 con costes (6-7), probar la redundancia apagando un uplink (8), alternativa RIPv2 (9) y diagnóstico (10-11). | `show ip route` con rutas `O` y **sin** `S`, 2 vecinos OSPF en `FULL` y pings OK **con el uplink de una sucursal caído**. | [Sesión B](SESION-B.md) |
 
 ## Topología
 
@@ -60,6 +79,12 @@ Se regenera con `python3 tools/build_teoria_lab.py`. El layout se verifica con
 Malla (full mesh) de 3 routers: cada router se enlaza con los otros dos. Así el
 tráfico entre sedes tiene **dos caminos posibles** y, en la Fase B, se puede
 demostrar la **redundancia** de OSPF apagando un enlace.
+
+> Esta malla física es la que usa la **Sesión A**. La **Sesión B** es un
+> laboratorio independiente con su **propia topología**: la misma estructura de
+> cables e IPs, pero con **roles distintos** — R1 = **sede central**, R2 y R3 =
+> sucursales con uplinks a la central — y el enlace 2 (R2↔R3) como **respaldo de
+> costo alto** para la demostración de redundancia.
 
 ```text
    LAN-A  192.168.2.0/28        LAN-B  192.168.2.16/28       LAN-C  192.168.2.32/28
@@ -198,6 +223,25 @@ puede repetirse.
 | R2 | 192.168.2.32 | 255.255.255.240 | 192.168.2.54 | Gi0/2 |
 | R3 | 192.168.2.0 | 255.255.255.240 | 192.168.2.58 | Gi0/2 |
 | R3 | 192.168.2.16 | 255.255.255.240 | 192.168.2.53 | Gi0/1 |
+
+### Direccionamiento extra de la Sesión B (VLAN 20 y roles hub-and-spoke)
+
+En la Sesión B los routers suman la subinterfaz `Gi0/0.20` (VLAN 20, invitados)
+y cambian de rol; el enlace 2 pasa a ser el respaldo entre sucursales:
+
+| Router | Rol (Sesión B) | Uplink a la central | Respaldo (costo 100) |
+|--------|----------------|---------------------|----------------------|
+| R1 | Sede central | Gi0/1 (.49) y Gi0/2 (.58) | — |
+| R2 | Sucursal 1 | Gi0/1 (.50/30) | Gi0/2 (.53/30) |
+| R3 | Sucursal 2 | Gi0/2 (.57/30) | Gi0/1 (.54/30) |
+
+| Router | Gi0/0.20 · VLAN 20 | Pool VLAN 20 | Rango DHCP (VLAN 20) |
+|--------|--------------------|--------------|----------------------|
+| R1 Central | .65/28 (dot1Q 20) | `VLAN20-CENTRAL` | .70 – .78 |
+| R2 SUC-1 | .81/28 (dot1Q 20) | `VLAN20-SUC1` | .86 – .94 |
+| R3 SUC-2 | .97/28 (dot1Q 20) | `VLAN20-SUC2` | .102 – .110 |
+
+Configs completas (routers **y switches**) en `config/`.
 
 ## Contexto teórico mínimo
 

@@ -54,8 +54,9 @@ def build(out):
     notes(s, "⏱ 3-4 min · Mapa de la clase.\n\n"
              "Señala que el orden importa: no se puede entender DHCP sin la máscara,\n"
              "ni el enrutamiento sin el gateway.\n"
-             "Deja claro que casi todo lo que vemos es teoría de la Sesión A; OSPF es\n"
-             "lo único de la Sesión B.")
+             "Esta teoría sirve a las dos sesiones: la Sesión A construye la malla con\n"
+             "estáticas y OSPF (Fase B); la Sesión B, independiente, monta su propia\n"
+             "red sede central + sucursales con VLANs y OSPF directo.")
 
     # ================================================================ DIV 1
     s = divider(prs, "1", "Dirección IP y máscara", "El bloque de todo lo demás",
@@ -646,7 +647,7 @@ def build(out):
               ["LSDB", "La base de datos con todas las redes conocidas", "`show ip ospf database`"],
               ["SPF", "Algoritmo (Dijkstra) que calcula el camino más corto", "Calcula la ruta de menor costo"],
               ["Hellos", "Paquetes cada 10 s para saber si el vecino sigue vivo", "`show ip ospf neighbor`"],
-              ["Estado FULL", "Los dos vecinos se reconhecieron", "Debe verse FULL en los 3"],
+              ["Estado FULL", "Los dos vecinos se reconocieron", "Debe verse FULL en los 3 routers (2 vecinos c/u)"],
               ["Passive", "La interfaz anuncia la red pero **no** manda hellos", "Gi0/0 de cada router es pasiva"]],
           0.45, 1.40, 12.4, col_w=[1.9, 6.4, 4.1], size=12, row_h=0.42)
     callout(s, 0.45, 5.20, 6.1, 1.80, "Por qué pasiva la interfaz de la LAN", [
@@ -654,10 +655,10 @@ def build(out):
         "Si la interfaz mandara hellos, los PCs recibirían paquetes OSPF que no entienden y la red se inundaría.",
         "`passive-interface` anuncia la red pero silencia el hello: es lo correcto."], TEAL, 12)
     callout(s, 6.75, 5.20, 6.15, 1.80, "Qué se gana con OSPF en este lab", [
-        "Los 3 routers **aprendan** las rutas de los otros, no hay que escribirlas.",
+        "Los 3 routers **aprenden** las rutas de los otros, no hay que escribirlas.",
         "Si un enlace cae, se recalcula y el tráfico va por el otro.",
-        "`show ip ospf neighbor` debe dar 3 vecinos FULL.",
-        "En la Sesión B se quita una estática y se ve la ruta OSPF (`O`)."], GREEN, 12)
+        "`show ip ospf neighbor` debe dar 2 vecinos FULL por router.",
+        "En la Sesión A hay que quitar las estáticas; la Sesión B es independiente y activa OSPF directo (`O` en la tabla)."], GREEN, 12)
     notes(s, "⏱ 50-53 min.\n\n"
              "OSPF es el bloque más denso. No entrar en detalle de tipos de router ni\n"
              "estados exentos: basta con link-state + área 0 + SPF.\n"
@@ -712,19 +713,22 @@ def build(out):
               ["Vuelve el enlace", "Manual: rehacer la ruta", "Automático, recalcula"]],
           0.45, 1.80, 12.4, col_w=[4.4, 4.0, 4.0], size=12, row_h=0.46)
     callout(s, 0.45, 4.20, 12.4, 1.60, "La demostración de la Sesión B, en orden", [
-        "1. `show ip ospf neighbor` → los 3 vecinos en **FULL**.",
-        "2. Borrar la ruta estática a LAN-C en R1 → el ping **sigue** funcionando.",
-        "3. `show ip route` → la ruta a LAN-C ahora aparece con código **O**, no S.",
-        "4. Apagar un enlace → el tráfico sigue por el camino que queda."], ORANGE, 12.5)
+        "1. `show ip ospf neighbor` → los 2 vecinos en **FULL**.",
+        "2. Apagar el uplink con `shutdown` en R1 Gi0/1 → el ping de la sucursal **sigue** funcionando.",
+        "3. `show ip route 192.168.2.0` en R2 → ahora `[110/102] via 192.168.2.54` (respaldo R2→R3→R1).",
+        "4. `no shutdown` → el camino vuelve solo al uplink de costo bajo."], ORANGE, 12.5)
     callout(s, 0.45, 5.90, 12.4, 1.05, "El mensaje que hay que llevarse", [
         "Las rutas estáticas no tienen «plan B»: si una falta, el tráfico se cae.",
         "Un protocolo dinámico es lo que hace que la topología de malla sirva de algo."], GREEN, 12.5)
     notes(s, "⏱ 55-57 min.\n\n"
              "Esta diapositiva es el puente directo con la Sesión B: los 4 pasos son\n"
-             "literalmente lo que se hace al final del laboratorio.\n"
+             "literalmente lo que se hace al final del laboratorio independiente.\n"
              "\n"
-             "El paso 2 es el que convence: si el ping sigue funcionando sin la\n"
-             "estática, es porque OSPF ya tenía esa ruta aprendida.\n"
+             "El paso 2 es el que convence: con el uplink apagado, el tráfico de la\n"
+             "sucursal sale por el respaldo (R2→R3→R1) y el costo salta de 2 a 102.\n"
+             "\n"
+             "En la Sesión A, el contraste equivalente es quitar una estática y ver que\n"
+             "OSPF ya tenía la ruta aprendida (`O` en vez de `S`).\n"
              "\n"
              "Aviso: si el ping falla en el paso 2, es que OSPF no converge. Revisar\n"
              "network, router-id y que los 3 estén en área 0.")
@@ -738,7 +742,7 @@ def build(out):
               ["show ip dhcp binding", "¿A quién se le entregó una IP?", "Leases .22 – .30 en LAN-B"],
               ["show ip dhcp server statistics", "¿Cuántos DORA hubo?", "DISCOVER, OFFER, REQUEST, ACK"],
               ["show ip arp", "¿Quién está en mi LAN?", "IP ↔ MAC de los vecinos"],
-              ["show ip ospf neighbor", "¿Se conocen los routers?", "3 vecinos en estado FULL"],
+              ["show ip ospf neighbor", "¿Se conocen los routers?", "2 vecinos en estado FULL"],
               ["show ip route ospf", "¿Qué rutas aprendió OSPF?", "Rutas con código O"],
               ["show ip protocols", "¿Qué protocolos corren?", "OSPF en área 0, RIP si aplica"]],
           0.45, 1.40, 12.4, col_w=[4.7, 4.1, 3.6], size=11.5, row_h=0.44)
@@ -791,7 +795,7 @@ def build(out):
               ["6", "`ipconfig /renew` en los PCs", "4", "Leases .22 – .30 en LAN-B"],
               ["7", "Ping al gateway y a la otra LAN", "5", "Ida y vuelta en ambos sentidos"],
               ["8", "Rutas estáticas hacia la tercera LAN", "5", "Los 3 se alcanzan entre sí"],
-              ["9", "OSPF área 0 + router-id", "5", "3 vecinos FULL"],
+              ["9", "OSPF área 0 + router-id", "5", "2 vecinos FULL por router"],
               ["10", "Borrar una estática y reintentar", "5", "El ping sigue, ahora por OSPF"]],
           0.45, 1.40, 12.4, col_w=[0.6, 4.4, 1.1, 6.3], size=11.5, row_h=0.40)
     callout(s, 0.45, 5.90, 12.4, 1.05, "El orden importa más de lo que parece", [

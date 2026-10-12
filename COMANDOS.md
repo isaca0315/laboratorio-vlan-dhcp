@@ -107,7 +107,11 @@ queda inútil. Ejemplo: R1 usa `.50` porque esa IP es la de R2 en la red
 
 ---
 
-## 6. OSPF (Fase B)
+## 6. OSPF
+
+> En la **Sesión A** el OSPF es la Fase B (hay que quitar las estáticas antes).
+> En la **Sesión B** el laboratorio es independiente: OSPF se configura directo,
+> nunca hubo estáticas que quitar.
 
 | Comando | Qué hace |
 |---------|----------|
@@ -115,6 +119,7 @@ queda inútil. Ejemplo: R1 usa `.50` porque esa IP es la de R2 en la red
 | `router-id 192.168.2.1` | Identidad del router dentro de OSPF. Debe ser **única** entre los vecinos |
 | `network 192.168.2.0 0.0.0.255 area 0` | Declara qué interfaces participan: prefijo + **wildcard** + área |
 | `passive-interface GigabitEthernet0/0` | No enviar hellos por esa interfaz |
+| `ip ospf cost 100` | Sube el costo del enlace (Sesión B: el respaldo R2↔R3) |
 | `no router ospf 10` | Elimina el proceso OSPF completo |
 
 **El wildcard es la máscara invertida:**
@@ -125,8 +130,9 @@ queda inútil. Ejemplo: R1 usa `.50` porque esa IP es la de R2 en la red
 | 255.255.255.240 | 0.0.0.15 | /28 |
 | 255.255.255.252 | 0.0.0.3 | /30 |
 
-`network 192.168.2.0 0.0.0.255 area 0` resume **las 6 subredes** del lab en una
-sola línea, porque todas caen dentro de `192.168.2.0/24`.
+`network 192.168.2.0 0.0.0.255 area 0` resume todas las subredes del lab en una
+sola línea, porque todas caen dentro de `192.168.2.0/24`: las 6 de la Sesión A
+(3 LAN + 3 enlaces) y las 9 de la Sesión B (VLAN 10/20 por sitio + enlaces).
 
 **`router-id` fijo:** si no lo configuras, cada router elige la IP más alta de
 una interfaz activa (R1 = `.58`, R2 = `.53`, R3 = `.57`). Fijarlo a `.1`/`.17`/`.33`
@@ -135,7 +141,11 @@ el material.
 
 **`passive-interface`:** en las LAN no hay ningún router vecino, así que los hellos
 ahí solo consumen ancho de banda. En los tres enlaces entre routers sí se mandan,
-por eso se advertise vecindad.
+por eso se establece vecindad.
+
+> En la Sesión B se declaran pasivas además las subinterfaces `Gi0/0.20` (las
+> VLAN de invitados tampoco tienen vecinos). **Nunca** se pone `passive` en
+> `Gi0/1` ni `Gi0/2`.
 
 ---
 
@@ -159,8 +169,8 @@ por eso se advertise vecindad.
 
 | Comando | Qué muestra | Lo esperado en este lab |
 |---------|-------------|------------------------|
-| `show ip interface brief` | IP, estado y protocolo de cada interfaz | Las 3 en `up/up` con su IP |
-| `show ip dhcp binding` | IPs entregadas a clientes | 3 leases en `.6–.14` (o `.22–.30`, `.38–.46`) |
+| `show ip interface brief` | IP, estado y protocolo de cada interfaz | Las 3 en `up/up` (Sesión A) o 4 por router con `Gi0/0.20` (Sesión B) |
+| `show ip dhcp binding` | IPs entregadas a clientes | 3 leases en `.6–.14` (o `.22–.30`, `.38–.46`); en la Sesión B además los de los pools de VLAN 20 |
 | `show ip dhcp pool` | Cómo quedó configurado cada pool | Red, gateway y rango del pool |
 | `show ip dhcp server statistics` | Estadísticas del servidor DHCP | Paquetes recibidos/enviados |
 | `show ip dhcp conflict` | Detecta IPs duplicadas | Vacío |
@@ -172,7 +182,7 @@ por eso se advertise vecindad.
 | `show ip protocols` | Qué protocolos de enrutamiento están activos | OSPF y/o RIP |
 | `show ip ospf` | Estado general del proceso OSPF | Process ID, router ID |
 | `show ip ospf neighbor` | Vecinos y su estado | 2 vecinos en `FULL` |
-| `show ip ospf interface brief` | Interfaces dentro de OSPF | Las 3, Gi0/0 como passive |
+| `show ip ospf interface brief` | Interfaces dentro de OSPF | Las 3 (A) o 4 (B: `Gi0/0`, `Gi0/0.20`, `Gi0/1`, `Gi0/2`); pasivas las LAN y las subinterfaces |
 | `show ip rip database` | Base de datos de RIP | Las redes aprendidas |
 | `show running-config` | Configuración activa completa | Para revisar y corregir |
 | `show version` | Versión de IOS y modelo | 2911 |
