@@ -34,6 +34,8 @@ de la red con comandos de diagnóstico.
   [`DIAGRAMAS.md`](DIAGRAMAS.md) (diagramas para draw.io).
 - Configs de routers y switches en `config/` (copiar y pegar): `R1.txt`…`R3.txt`,
   `SW1.txt`…`SW3.txt`. Las de la Sesión B IPv6 están en `config/ipv6/`.
+- MCP para manejar Packet Tracer desde OpenCode en
+  [`MCP-PACKET-TRACER.md`](MCP-PACKET-TRACER.md).
 - Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
 - Cálculo de subneteo VLSM en [`SUBNETEO.md`](SUBNETEO.md).
 - Qué hace cada comando en [`COMANDOS.md`](COMANDOS.md).
@@ -70,6 +72,14 @@ típicos.
 Se regenera con `python3 tools/build_sesion_b.py Sesion-B.pptx` y el layout se
 verifica con `python3 tools/check_layout.py Sesion-B.pptx`. El volcado en texto
 plano está en [`SESION-B-PPT.md`](SESION-B-PPT.md).
+
+### Automatización con Packet Tracer (MCP)
+
+[`MCP-PACKET-TRACER.md`](MCP-PACKET-TRACER.md) explica cómo está configurado
+`pktctl`, el servidor MCP que maneja Packet Tracer desde OpenCode: crear
+topologías, cablear, escribir comandos IOS, ejecutar ping/traceroute y verificar
+DHCP y OSPF sin usar el ratón. Requiere Packet Tracer 9.0.1 abierto y el
+registro ExApp una sola vez.
 
 ## Cómo se trabaja esta sesión
 
