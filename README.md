@@ -85,6 +85,9 @@ ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye la instalaci
 en Windows y Linux. Requiere Packet Tracer 9.0.1 abierto y el registro ExApp una
 sola vez.
 
+Guía paso a paso para alumnos en Windows (JSON del cliente + registro `.pta`, sin `.pts`):
+[`GUIA-ALUMNOS-PKTCTL-WINDOWS.md`](GUIA-ALUMNOS-PKTCTL-WINDOWS.md).
+
 Alternativa: [`MCP-PACKET-TRACER-MCP-WINDOWS.md`](MCP-PACKET-TRACER-MCP-WINDOWS.md)
 es la guía para alumnos del servidor `packet-tracer-mcp` (extensión MCP Control
 Center, sin permisos de administrador). Usa una u otra, no las dos sobre la misma red.
