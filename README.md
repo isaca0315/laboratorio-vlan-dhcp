@@ -79,10 +79,11 @@ plano está en [`SESION-B-PPT.md`](SESION-B-PPT.md).
 ### Automatización con Packet Tracer (MCP)
 
 [`MCP-PACKET-TRACER.md`](MCP-PACKET-TRACER.md) explica cómo está configurado
-`pktctl`, el servidor MCP que maneja Packet Tracer desde OpenCode: crear
-topologías, cablear, escribir comandos IOS, ejecutar ping/traceroute y verificar
-DHCP y OSPF sin usar el ratón. Requiere Packet Tracer 9.0.1 abierto y el
-registro ExApp una sola vez.
+`pktctl`, el servidor MCP que maneja Packet Tracer desde **Claude Desktop** u
+**OpenCode**: crear topologías, cablear, escribir comandos IOS, ejecutar
+ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye la instalación
+en Windows y Linux. Requiere Packet Tracer 9.0.1 abierto y el registro ExApp una
+sola vez.
 
 ## Cómo se trabaja esta sesión
 
