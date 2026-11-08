@@ -69,6 +69,13 @@ vez:
 > Si Packet Tracer se cierra mal después de registrar, el registro se pierde:
 > repite el paso y vuelve a salir con **File → Exit**.
 
+> **No pulses «Launch» sobre `pktctl`.** Si lo haces verás
+> `Cannot launch ExApp. The executable file name or location may be incorrect...`.
+> Es normal: `pktctl` no lo lanza Packet Tracer, lo lanza OpenCode y se conecta
+> por TCP. El `.pta` no lleva archivo de integridad justamente para que PT no
+> intente ejecutarlo. El registro está bien si la app aparece en la lista y
+> `status` responde `connected: true`.
+
 ## Verificar la conexión
 
 ```sh
@@ -147,6 +154,7 @@ Ejemplos útiles:
 | Síntoma | Causa y solución |
 |---------|------------------|
 | `Packet Tracer is not reachable` | PT cerrado, o IPC en un puerto fuera de `39000`–`39009`. Abre PT y revisa **Extensions → IPC → Options**. |
+| `Cannot launch ExApp...` al pulsar **Launch** | Esperado. `pktctl` lo arranca OpenCode, no PT. Ignora el aviso y usa `status`; si da `connected: true`, todo está bien. |
 | `rejected app id dev.pktctl` | Falta registrar el `.pta`, el secreto no coincide o PT no salió con **File → Exit**. Registra de nuevo y cierra bien. |
 | `does not have the necessary privilege` | El `.pta` se registró con una plantilla vieja. Vuelve a registrar el actual. |
 | `opencode mcp list` muestra `failed` | Revisa la ruta del binario y las variables `PKTCTL_APP_ID` / `PKTCTL_SECRET` en la config. |
