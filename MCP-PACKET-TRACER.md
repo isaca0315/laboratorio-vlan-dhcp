@@ -124,6 +124,31 @@ Ejemplos útiles:
 > Crea la topología hub-and-spoke de la Sesión B con VLAN 10/20, aplica
 > `config/ipv6/R1.txt`…`R3.txt` y verifica DHCPv6 y OSPFv3.
 
+### Archivos generados con pktctl
+
+| Archivo | Contenido |
+|---------|-----------|
+| `packet-tracer/Sesion-A-IPv4.pkt` | 3 sedes, DHCPv4 por LAN, rutas estáticas |
+| `packet-tracer/Sesion-A-IPv6.pkt` | Igual, con DHCPv6 y rutas estáticas IPv6 |
+| `packet-tracer/Sesion-B-IPv4.pkt` | VLAN 10/20, DHCP por VLAN, OSPF 10 con respaldo costo 100 |
+| `packet-tracer/Sesion-B-IPv6.pkt` | Igual, con DHCPv6 por VLAN y OSPFv3 |
+
+Comprobado en los cuatro: 15 enlaces, direcciones por DHCP/DHCPv6 en los 9 PCs,
+ping entre sedes y tabla de rutas correcta. En la Sesión B se apagó el uplink de
+R1 y el tráfico pasó por el enlace de respaldo (costo 100), y volvió al camino
+primario al encenderlo.
+
+Notas de la API que conviene conocer:
+
+- `configure_host_ipv6` solo admite `static`, `auto` (SLAAC) y `off`. Para
+  DHCPv6 stateful hay que usar IPC:
+  `getProcess("Dhcpv6MainProcess")` → `enableDhcpClient("CLIENT_ENABLED_VIA_DHCP", "FastEthernet0", "", false, true, false)`.
+  El nombre del proceso distingue mayúsculas: `DHCPv6MainProcess` no existe.
+- `configure_ios` corta el lote después de `no shutdown` y de
+  `logging synchronous`. Parte los comandos en trozos de una interfaz o usa
+  `run_cli` en modo `global`/`current`.
+- Después de `enable secret cisco`, pasa `enable_password: "cisco"` a `run_cli`.
+
 ## Herramientas que más vas a usar
 
 | Herramienta | Para qué |

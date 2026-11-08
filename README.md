@@ -34,6 +34,9 @@ de la red con comandos de diagnóstico.
   [`DIAGRAMAS.md`](DIAGRAMAS.md) (diagramas para draw.io).
 - Configs de routers y switches en `config/` (copiar y pegar): `R1.txt`…`R3.txt`,
   `SW1.txt`…`SW3.txt`. Las de la Sesión B IPv6 están en `config/ipv6/`.
+- Proyectos Packet Tracer ya armados y verificados en `packet-tracer/`:
+  `Sesion-A-IPv4.pkt`, `Sesion-A-IPv6.pkt`, `Sesion-B-IPv4.pkt` y
+  `Sesion-B-IPv6.pkt` (son locales: `*.pkt` está en `.gitignore`).
 - MCP para manejar Packet Tracer desde OpenCode en
   [`MCP-PACKET-TRACER.md`](MCP-PACKET-TRACER.md).
 - Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
