@@ -13,6 +13,13 @@ El laboratorio tiene **dos sesiones independientes** sobre la red base
   montada desde cero: VLAN 10/20, DHCP por VLAN y **OSPF área 0 directo** (sin
   rutas estáticas) con prueba de redundancia.
 
+Cada sesión tiene además su **versión IPv6** (misma topología y cableado,
+`/64` por segmento, **DHCPv6**, rutas estáticas en A y **OSPFv3** en B):
+
+- [`SESION-A-IPV6.md`](SESION-A-IPV6.md) — Sesión A con direccionamiento IPv6.
+- [`SESION-B-IPV6.md`](SESION-B-IPV6.md) — Sesión B con VLANs, DHCPv6 por VLAN
+  y OSPFv3 (configs en `config/ipv6/`).
+
 Al terminar sabrás calcular un plan de direccionamiento sin desperdicio,
 configurar un router como servidor DHCP por VLAN y verificar el comportamiento
 de la red con comandos de diagnóstico.
@@ -20,12 +27,13 @@ de la red con comandos de diagnóstico.
 ## Materiales
 
 - Cisco Packet Tracer (cuenta de estudiante Cisco NetAcad).
-- Este instructivo (`README.md`, `SESION-A.md`, `SESION-B.md`).
+- Este instructivo (`README.md`, `SESION-A.md`, `SESION-B.md`) y sus versiones
+  IPv6 (`SESION-A-IPV6.md`, `SESION-B-IPV6.md`).
 - Referencias: [`SUBNETEO.md`](SUBNETEO.md) (máscaras),
   [`COMANDOS.md`](COMANDOS.md) (qué hace cada comando),
   [`DIAGRAMAS.md`](DIAGRAMAS.md) (diagramas para draw.io).
 - Configs de routers y switches en `config/` (copiar y pegar): `R1.txt`…`R3.txt`,
-  `SW1.txt`…`SW3.txt`.
+  `SW1.txt`…`SW3.txt`. Las de la Sesión B IPv6 están en `config/ipv6/`.
 - Diagramas en Mermaid para draw.io en [`DIAGRAMAS.md`](DIAGRAMAS.md).
 - Cálculo de subneteo VLSM en [`SUBNETEO.md`](SUBNETEO.md).
 - Qué hace cada comando en [`COMANDOS.md`](COMANDOS.md).
@@ -69,6 +77,8 @@ plano está en [`SESION-B-PPT.md`](SESION-B-PPT.md).
 |--------|-----------|------------------|------|
 | **Sesión A** — Topología, VLSM, DHCP y rutas estáticas | Montar la topología (1), calcular el VLSM (2), configurar interfaces y DHCP en los 3 routers (3), configurar rutas estáticas (4) y verificar el DHCP en los PCs (5). | Tabla de direccionamiento completa + `show ip dhcp binding` con 3 leases por router + pings cruzados OK en Fase A. | [Sesión A](SESION-A.md) |
 | **Sesión B** — Red corporativa con OSPF (independiente) | Montar la topología sede central + 2 sucursales (1), plan VLSM de referencia (2), VLAN 10/20 y DHCP por VLAN (3-5), OSPF área 0 con costes (6-7), probar la redundancia apagando un uplink (8), alternativa RIPv2 (9) y diagnóstico (10-11). | `show ip route` con rutas `O` y **sin** `S`, 2 vecinos OSPF en `FULL` y pings OK **con el uplink de una sucursal caído**. | [Sesión B](SESION-B.md) |
+| **Sesión A IPv6** — Misma malla con `/64` y DHCPv6 | Repetir la Sesión A con IPv6: `/64` por segmento (sin VLSM), DHCPv6 en cada router, rutas estáticas `ipv6 route` y, opcional, OSPFv3/RIPng. | Tabla de prefijos `/64`, `show ipv6 dhcp binding` y pings cruzados. | [Sesión A IPv6](SESION-A-IPV6.md) |
+| **Sesión B IPv6** — Hub-and-spoke con DHCPv6 y OSPFv3 | Repetir la Sesión B con IPv6: mismo cableado y VLANs, dos pools DHCPv6 por router, OSPFv3 área 0 con costo 100 en el respaldo y prueba de redundancia. | `show ipv6 route` con rutas `O` y **sin** `S`, vecinos OSPFv3 en `FULL` y pings OK con el uplink caído. | [Sesión B IPv6](SESION-B-IPV6.md) |
 
 ## Topología
 

@@ -1,0 +1,124 @@
+! =====================================================================
+! R3 - SUCURSAL 2 (IPv6)
+! Laboratorio 13 - Sesion B IPv6: VLAN 10/20 + DHCPv6 + OSPFv3
+! Pegar en la CLI: enable -> configure terminal
+! =====================================================================
+
+enable
+configure terminal
+!
+! --- Identificacion del equipo ---
+hostname R3-SUCURSAL-2
+no ip domain-lookup
+enable secret cisco
+service password-encryption
+!
+banner motd @ R3-SUCURSAL-2 - Lab 13 Sesion B IPv6 OSPFv3 @
+
+! --- Lineas de acceso ---
+line console 0
+ password cisco
+ logging synchronous
+line vty 0 4
+ password cisco
+ login
+ transport input ssh
+!
+! --- Reenvio IPv6 (obligatorio) ---
+ipv6 unicast-routing
+!
+! --- LAN usuarios (VLAN 10) - gateway de la sucursal 2 ---
+interface GigabitEthernet0/0
+ description SUCURSAL-2 - Usuarios VLAN10 GW 2001:db8:13:32::1/64
+ ipv6 address 2001:db8:13:32::1/64
+ no shutdown
+!
+! --- LAN invitados (VLAN 20) - router-on-a-stick ---
+interface GigabitEthernet0/0.20
+ description SUCURSAL-2 - Invitados VLAN20 GW 2001:db8:13:96::1/64
+ encapsulation dot1Q 20
+ ipv6 address 2001:db8:13:96::1/64
+ no shutdown
+!
+! --- RESPALDO a R2 (sucursal 1) - costo alto, solo emergencia ---
+interface GigabitEthernet0/1
+ description Respaldo a SUC-1 - 2001:db8:13:52::/64 (R2=::1, R3=::2)
+ ipv6 address 2001:db8:13:52::2/64
+ ipv6 ospf cost 100
+ no shutdown
+!
+! --- UPLINK a R1 (sede central) - camino primario ---
+interface GigabitEthernet0/2
+ description Uplink a CENTRAL - 2001:db8:13:56::/64 (R3=::1, R1=::2)
+ ipv6 address 2001:db8:13:56::1/64
+ no shutdown
+!
+! =========================================================
+! DHCPv6 SERVER por VLAN (sin relay: PT no lo soporta)
+! =========================================================
+ipv6 dhcp pool VLAN10-SUC2
+ address prefix 2001:db8:13:32::/64
+ dns-server 2001:4860:4860::8888
+ domain-name lab-utp.pa
+!
+ipv6 dhcp pool VLAN20-SUC2
+ address prefix 2001:db8:13:96::/64
+ dns-server 2001:4860:4860::8888
+ domain-name lab-utp.pa
+!
+interface GigabitEthernet0/0
+ ipv6 nd managed-config-flag
+ ipv6 dhcp server VLAN10-SUC2
+!
+interface GigabitEthernet0/0.20
+ ipv6 nd managed-config-flag
+ ipv6 dhcp server VLAN20-SUC2
+!
+! =========================================================
+! OSPFv3 AREA 0 - unico protocolo (no hay rutas estaticas)
+! =========================================================
+ipv6 router ospf 1
+ router-id 3.3.3.3
+ passive-interface GigabitEthernet0/0
+ passive-interface GigabitEthernet0/0.20
+!
+interface GigabitEthernet0/0
+ ipv6 ospf 1 area 0
+interface GigabitEthernet0/0.20
+ ipv6 ospf 1 area 0
+interface GigabitEthernet0/1
+ ipv6 ospf 1 area 0
+interface GigabitEthernet0/2
+ ipv6 ospf 1 area 0
+!
+! =========================================================
+! Alternativa RIPng (para comparar en la Parte 9)
+! =========================================================
+! no ipv6 router ospf 1
+! ipv6 router rip LAB
+!  passive-interface GigabitEthernet0/0
+!  passive-interface GigabitEthernet0/0.20
+! interface GigabitEthernet0/0
+!  ipv6 rip LAB enable
+! interface GigabitEthernet0/0.20
+!  ipv6 rip LAB enable
+! interface GigabitEthernet0/1
+!  ipv6 rip LAB enable
+! interface GigabitEthernet0/2
+!  ipv6 rip LAB enable
+!
+end
+copy running-config startup-config
+
+! =========================================================
+! VERIFICACIONES
+! =========================================================
+! show ipv6 interface brief
+! show ipv6 dhcp pool
+! show ipv6 dhcp binding
+! show ipv6 route
+! show ipv6 ospf neighbor
+! show ipv6 protocols
+! ping 2001:db8:13:0::1
+! ping 2001:db8:13:16::1
+! traceroute 2001:db8:13:0::1
