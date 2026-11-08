@@ -12,7 +12,7 @@ este laboratorio dentro de **Cisco Packet Tracer 9.0.1** usando el servidor MCP
 | Componente | Ruta / valor |
 |------------|--------------|
 | Binario | `~/.local/bin/pktctl` (v0.2.2, Linux x86_64) |
-| Registro ExApp | `~/.config/pktctl/pktctl.pta` |
+| Registro ExApp | `~/pktctl.pta` (copia visible; el original está en `~/.config/pktctl/pktctl.pta`) |
 | Secreto IPC | `~/.config/pktctl/secret` (modo 600, **no versionar**) |
 | App ID | `dev.pktctl` |
 | Config de OpenCode | `~/.config/opencode/opencode.json` → `mcp.servers.pktctl` |
@@ -52,12 +52,17 @@ del archivo `.pta` que genera. Después completa el registro único de abajo.
 
 ## Registro único en Packet Tracer
 
-En esta instalación ya está generado `~/.config/pktctl/pktctl.pta`. Si Packet
-Tracer todavía no lo conoce, hazlo una sola vez:
+En esta instalación ya está generado `~/pktctl.pta` (copia visible del original
+en `~/.config/pktctl/`). Si Packet Tracer todavía no lo conoce, hazlo una sola
+vez:
 
 1. Abre Packet Tracer.
 2. **Extensions → IPC → Configure Apps → Add**.
-3. Selecciona `~/.config/pktctl/pktctl.pta` y confirma con **Ok**.
+3. Selecciona `/home/ponciop/pktctl.pta` y confirma con **Ok**.
+
+   Si el selector no muestra los archivos ocultos, copia el `.pta` a una carpeta
+   visible (`cp ~/.config/pktctl/pktctl.pta ~/pktctl.pta`) o pulsa **Ctrl+H**
+   en el diálogo para mostrarlos.
 4. Cierra Packet Tracer con **File → Exit** (no lo mates con `kill`). Solo al
    salir normalmente guarda la lista de aplicaciones.
 
