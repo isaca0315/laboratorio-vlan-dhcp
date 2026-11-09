@@ -45,6 +45,7 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | `setup_exapp` | **Falla** en esta instalación (ver Paso 4) | No probado |
 | Registro manual con `meta` (el `.pta` sale byte a byte igual al registrado) | Probado | No probado |
 | `.pta` del repositorio (mismo procedimiento, secreto de práctica) | Generado y comprobado (478 bytes, determinista) | No cargado en Packet Tracer |
+| Ejercicios del Paso 7 en `Sesion-B-IPv6.pkt` | Probados (sesión 1-6; el 7 y el 8 son de corrección manual) | No probados |
 | Bloques JSON de esta guía | Probados (4 de 4) | Probados (son los mismos) |
 | `opencode mcp list` → `pktctl connected` | Probado | No probado |
 | Claude Desktop cargando el servidor en la ventana | Pendiente: hay que reiniciar Claude Desktop | No probado |
@@ -441,6 +442,9 @@ corresponda.
 comprobar, en qué formato devolverlo y qué **no** tocar. Escribe tu predicción
 antes de enviarlo: el objetivo es que detectes si el agente se equivoca.
 
+> Los routers del laboratorio piden contraseña de consola y de `enable`: es
+> `cisco`. Si el agente se queda esperando un `Password:`, dale ese dato.
+
 ### 1. Reconocer la red (sin cambios)
 
 **Predice:** cuántos routers, switches y PCs hay, y cuántos enlaces.
@@ -450,7 +454,8 @@ antes de enviarlo: el objetivo es que detectes si el agente se equivoca.
 > como una lista con los nombres de los dispositivos.
 
 **Comprueba:** 3 routers, 3 switches, 9 PCs y 15 enlaces (`status` responde
-`connected: true`). Si el agente cuenta mal, no confíes en el resto.
+`connected: true`). El `Power Distribution Device0` no cuenta: es un accesorio de
+Packet Tracer. Si el agente cuenta mal, no confíes en el resto.
 
 ### 2. Leer el direccionamiento
 
@@ -460,7 +465,9 @@ antes de enviarlo: el objetivo es que detectes si el agente se equivoca.
 > estén down y no cambies la configuración.
 
 **Comprueba:** Gi0/0 = .1/28, Gi0/1 = .49/30, Gi0/2 = .58/30, todas `up/up`. En la
-Sesión B aparece además `Gi0/0.20` = .65/28.
+Sesión B aparece además `Gi0/0.20` = .65/28. En IPv6: `2001:DB8:13::1`,
+`2001:DB8:13:48::1`, `2001:DB8:13:56::2` y, en la Sesión B,
+`2001:DB8:13:64::1` en `Gi0/0.20`.
 
 ### 3. Comprobar el DHCP
 
@@ -469,8 +476,10 @@ Sesión B aparece además `Gi0/0.20` = .65/28.
 > En R2, lista las concesiones DHCP y dime qué PC tiene cada IP. No renueves ni
 > liberes ninguna.
 
-**Comprueba:** todas las concesiones caen dentro de los rangos de sus pools
-(Sesión A: .22–.30; Sesión B: VLAN 10 .22–.30 y VLAN 20 .86–.94). Compara la MAC
+**Comprueba:** en IPv4, todas las concesiones caen dentro de los rangos de sus
+pools (Sesión A: .22–.30; Sesión B: VLAN 10 .22–.30 y VLAN 20 .86–.94). En IPv6
+hay una concesión por PC y las direcciones caen en los prefijos del sitio
+(`2001:DB8:13:16::/64` y `2001:DB8:13:80::/64` en la Sesión B). Compara la MAC
 de cada lease con la del PC.
 
 ### 4. Seguir el camino de un paquete
@@ -480,8 +489,9 @@ de cada lease con la del PC.
 > Desde PC-A1 haz ping a PC-C1 y luego un tracert. Dime el primer salto, el camino
 > completo y si coincide con las rutas de la tabla.
 
-**Comprueba:** ping OK y el camino pasa por R1 y R3 (LAN-A → LAN-C). Un salto
-inesperado suele ser una ruta mal escrita.
+**Comprueba:** ping OK y el camino pasa por R1 y R3 (LAN-A → LAN-C). En IPv6,
+`2001:DB8:13::1` → `2001:DB8:13:56::1`. Un salto inesperado suele ser una ruta
+mal escrita.
 
 ### 5. Interpretar la tabla de rutas
 
@@ -492,7 +502,8 @@ llegar a 192.168.2.32/28.
 > 192.168.2.32/28. Indica el código, el siguiente salto y la interfaz de salida.
 
 **Comprueba:** en la Sesión A debe ser `S` por .57 (Gi0/2). En la Sesión B, `O`
-con costo. Si sale `S` en la Sesión B, OSPF no convergió.
+con costo. En IPv6 es `O 2001:DB8:13:32::/64 [110/2]` por `GigabitEthernet0/2`.
+Si sale `S` en la Sesión B, OSPF no convergió.
 
 ### 6. Fallo controlado
 
@@ -511,8 +522,10 @@ con costo. Si sale `S` en la Sesión B, OSPF no convergió.
 > llega a PC-C1 y por qué camino. Después vuelve a encender la interfaz. No
 > guardes el archivo.
 
-**Comprueba:** el ping **sigue funcionando** y el camino pasa por R3. Esa es la
-redundancia de la Sesión B y la pregunta 5 de la rúbrica.
+**Comprueba:** el ping **sigue funcionando** y el camino pasa por R3: en IPv6,
+`2001:DB8:13:52::2`, y `show ipv6 route` en R2 marca métrica 101. Esa es la
+redundancia de la Sesión B y la pregunta 5 de la rúbrica. Al encender la interfaz
+el camino vuelve por R1 y la métrica baja a 3.
 
 ### 7. Diagnóstico a ciegas
 
@@ -537,7 +550,8 @@ corrige tú y explica qué pista faltó en el prompt.
 
 **Comprueba:** debe ser un `/28` alineado. En la **Sesión A** el primero libre es
 192.168.2.64/28; en la **Sesión B**, 192.168.2.112/28 (gateway .113, DHCP
-.118–.126). Si propone .60 o .114, no alineó el bloque.
+.118–.126). Si propone .60 (A) o .114 (B) como dirección de red, no alineó el
+bloque. Es solo IPv4: IPv6 no usa VLSM en este laboratorio.
 
 > Los ejercicios 6 y 7 modifican la red. Trabaja sobre una copia y no guardes el
 > `.pkt` original.
