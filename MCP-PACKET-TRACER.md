@@ -25,7 +25,7 @@ sistema operativo: sirve igual en Windows, Linux y macOS.
 6. [Conseguir el registro `.pta`](#paso-4-conseguir-el-registro-pta)
 7. [Cargar el registro en Packet Tracer](#paso-5-cargar-el-registro-en-packet-tracer)
 8. [Comprobar la conexión](#paso-6-comprobar-la-conexión)
-9. [Práctica guiada con el MCP](#paso-7-práctica-guiada-con-el-mcp)
+9. [Construir el laboratorio desde cero](#paso-7-construir-el-laboratorio-desde-cero)
 10. [Seguridad](#seguridad)
 11. [Problemas típicos](#problemas-típicos)
 12. [Actualizar y desinstalar](#actualizar-y-desinstalar)
@@ -45,7 +45,7 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | `setup_exapp` | **Falla** en esta instalación (ver Paso 4) | No probado |
 | Registro manual con `meta` (el `.pta` sale byte a byte igual al registrado) | Probado | No probado |
 | `.pta` del repositorio (mismo procedimiento, secreto de práctica) | Generado y comprobado (478 bytes, determinista) | No cargado en Packet Tracer |
-| Ejercicios del Paso 7 en `Sesion-B-IPv6.pkt` | Probados (sesión 1-6; el 7 y el 8 son de corrección manual) | No probados |
+| Ejercicios del Paso 7 (construcción desde cero) | Valores esperados comprobados en `Sesion-A-IPv4.pkt` y `Sesion-B-IPv6.pkt`; A-IPv6 y B-IPv4 salen de las guías | Construcción completa no ejecutada |
 | Bloques JSON de esta guía | Probados (4 de 4) | Probados (son los mismos) |
 | `opencode mcp list` → `pktctl connected` | Probado | No probado |
 | Claude Desktop cargando el servidor en la ventana | Pendiente: hay que reiniciar Claude Desktop | No probado |
@@ -425,11 +425,22 @@ Los logs del servidor están en `%APPDATA%\Claude\logs\mcp-server-pktctl.log`
 de nombres es la de los otros servidores de esta instalación; en `pktctl` todavía
 no la he visto aparecer.
 
-## Paso 7: práctica guiada con el MCP
+## Paso 7: construir el laboratorio desde cero
 
-Ocho ejercicios cortos, **en orden**, sobre una **copia** del `.pkt`. Sirven para
-las cuatro sesiones: cambia el nombre del archivo y usa la columna que
-corresponda.
+Ocho ejercicios cortos, **en orden**, para **montar el laboratorio con el MCP**
+partiendo de una red vacía. Se repiten dos veces por sesión: una en IPv4 y otra
+en IPv6.
+
+| | Sesión A | Sesión B |
+|---|---|---|
+| Guía | `SESION-A.md` y `SESION-A-IPV6.md` | `SESION-B.md` y `SESION-B-IPV6.md` |
+| LAN por sede | una | VLAN 10 (usuarios) y 20 (invitados) |
+| Enrutamiento | rutas estáticas | OSPF / OSPFv3 |
+| Ejercicio 7 | el enlace cortado **rompe** el ping | el tráfico **se desvía** por R3 |
+
+Los cuatro `.pkt` de `packet-tracer/` son la **solución**. Ábrelos solo al final,
+para comparar: si el agente los lee antes, copia y el ejercicio no prueba nada.
+Las configuraciones de `config/` y `config/ipv6/` también son de la Sesión B.
 
 | Tarea | IPv4 | IPv6 |
 |-------|------|------|
@@ -438,125 +449,155 @@ corresponda.
 | Ver DHCP | `show ip dhcp binding` | `show ipv6 dhcp binding` |
 | Ver vecinos | `show ip ospf neighbor` | `show ipv6 ospf neighbor` |
 
-**Cómo se pide.** Un prompt útil tiene cuatro partes: qué archivo abrir, qué
-comprobar, en qué formato devolverlo y qué **no** tocar. Escribe tu predicción
-antes de enviarlo: el objetivo es que detectes si el agente se equivoca.
+**Cómo se pide.** Un prompt útil tiene cuatro partes: qué construir, con qué
+datos exactos, cómo comprobarlo y qué **no** tocar. Escribe tu predicción antes
+de enviarlo: el objetivo es detectar si el agente se equivoca.
 
-> Los routers del laboratorio piden contraseña de consola y de `enable`: es
-> `cisco`. Si el agente se queda esperando un `Password:`, dale ese dato.
+> Si aplicas las configuraciones de `config/`, los routers piden contraseña de
+> consola y de `enable`: `cisco`. Sin ese dato el agente se queda en `Password:`.
 
-### 1. Reconocer la red (sin cambios)
+### 1. Topología vacía
 
-**Predice:** cuántos routers, switches y PCs hay, y cuántos enlaces.
+**Predice:** cuántos equipos hay al terminar y cómo se llaman.
 
-> Abre `packet-tracer/Sesion-A-IPv4.pkt` y no cambies nada. Dime la versión de
-> Packet Tracer, cuántos routers, switches y PCs hay, y cuántos enlaces. Preséntalo
-> como una lista con los nombres de los dispositivos.
+> Empieza una red nueva. Coloca 3 routers 2911 llamados R1, R2 y R3; 3 switches
+> 2960-24TT llamados SW1, SW2 y SW3; y 9 PCs llamados PC-A1…A3, PC-B1…B3 y
+> PC-C1…C3. No cables ni configures nada. Al terminar, lista cada equipo con su
+> modelo.
 
-**Comprueba:** 3 routers, 3 switches, 9 PCs y 15 enlaces (`status` responde
-`connected: true`). El `Power Distribution Device0` no cuenta: es un accesorio de
-Packet Tracer. Si el agente cuenta mal, no confíes en el resto.
+**Comprueba:** 15 equipos de red con esos nombres y modelos, y 0 enlaces. Si
+aparece `Power Distribution Device0`, no lo cuentes: es un accesorio de Packet
+Tracer. Un nombre cambiado rompe los prompts siguientes.
 
-### 2. Leer el direccionamiento
+### 2. Cableado exacto
 
-**Predice:** las direcciones de R1 y cuáles deben estar `up`.
+**Predice:** cuántos cables tendrá cada router y cada switch.
 
-> En R1, muéstrame todas las interfaces con su dirección y estado. Marca las que
-> estén down y no cambies la configuración.
+> Cablea los 15 enlaces con cable straight-through y los puertos exactos:
+> R1 Gi0/0→SW1 Fa0/1, R2 Gi0/0→SW2 Fa0/1, R3 Gi0/0→SW3 Fa0/1; PC-A1/A2/A3
+> Fa0→SW1 Fa0/2/3/4 y lo mismo en B y C; R1 Gi0/1→R2 Gi0/1,
+> R2 Gi0/2→R3 Gi0/1, R3 Gi0/2→R1 Gi0/2. No configures nada. Dime cuántos
+> enlaces hay y qué puertos usa cada router.
 
-**Comprueba:** Gi0/0 = .1/28, Gi0/1 = .49/30, Gi0/2 = .58/30, todas `up/up`. En la
-Sesión B aparece además `Gi0/0.20` = .65/28. En IPv6: `2001:DB8:13::1`,
-`2001:DB8:13:48::1`, `2001:DB8:13:56::2` y, en la Sesión B,
-`2001:DB8:13:64::1` en `Gi0/0.20`.
+**Comprueba:** 15 enlaces; 3 por router (`Gi0/0`, `Gi0/1`, `Gi0/2`) y 4 por
+switch (`Fa0/1` y `Fa0/2-4`). Las luces rojas son normales hasta el `no
+shutdown`.
 
-### 3. Comprobar el DHCP
+### 3. Switches y VLAN (solo Sesión B)
 
-**Predice:** cuántas concesiones debe haber y en qué rango.
+**Predice:** qué puertos quedan en VLAN 10, cuáles en VLAN 20 y cuál es trunk.
 
-> En R2, lista las concesiones DHCP y dime qué PC tiene cada IP. No renueves ni
-> liberes ninguna.
+> Configura SW1, SW2 y SW3: VLAN 10 `USUARIOS` y VLAN 20 `INVITADOS`. Fa0/2 y
+> Fa0/3 en acceso a VLAN 10, Fa0/4 en acceso a VLAN 20, y Fa0/1 en trunk con
+> native VLAN 10 y allowed 10,20. No toques los routers. Muéstrame `show vlan
+> brief` y `show interfaces trunk` de SW1.
 
-**Comprueba:** en IPv4, todas las concesiones caen dentro de los rangos de sus
-pools (Sesión A: .22–.30; Sesión B: VLAN 10 .22–.30 y VLAN 20 .86–.94). En IPv6
-hay una concesión por PC y las direcciones caen en los prefijos del sitio
-(`2001:DB8:13:16::/64` y `2001:DB8:13:80::/64` en la Sesión B). Compara la MAC
-de cada lease con la del PC.
+**Comprueba:** VLAN 10 y 20 activas; Fa0/2-3 en 10 y Fa0/4 en 20; trunk con
+native 10 y allowed 10,20. Si la native se queda en 1, los PCs de VLAN 10 no
+reciben DHCP.
 
-### 4. Seguir el camino de un paquete
+En la Sesión A salta al ejercicio 4: los switches van de fábrica, sin VLANs.
 
-**Predice:** por qué router sale el paquete y cuántos saltos hay.
+### 4. Direccionamiento de los routers
 
-> Desde PC-A1 haz ping a PC-C1 y luego un tracert. Dime el primer salto, el camino
-> completo y si coincide con las rutas de la tabla.
+**Predice:** la IP de cada interfaz y qué dos subredes no pueden solaparse.
 
-**Comprueba:** ping OK y el camino pasa por R1 y R3 (LAN-A → LAN-C). En IPv6,
-`2001:DB8:13::1` → `2001:DB8:13:56::1`. Un salto inesperado suele ser una ruta
-mal escrita.
+> Asigna a R1, R2 y R3 las direcciones del plan de tu guía y levanta las
+> interfaces. En la Sesión B añade `Gi0/0.20` con `encapsulation dot1Q 20`.
+> Antes de ejecutar, dime la IP de cada interfaz. No configures DHCP ni rutas.
 
-### 5. Interpretar la tabla de rutas
+**Comprueba (Sesión A):** R1 `.1/28`, `.49/30`, `.58/30`; R2 `.17/28`, `.50/30`,
+`.53/30`; R3 `.33/28`, `.54/30`, `.57/30`, todas `up/up`. En IPv6: R1
+`2001:DB8:13:0::1`, `:48::1`, `:56::2`; R2 `:16::1`, `:48::2`, `:52::1`; R3
+`:32::1`, `:52::2`, `:56::1`.
 
-**Predice:** qué código (`S`, `O`, `C`) y qué siguiente salto debe usar R1 para
-llegar a 192.168.2.32/28.
+**Comprueba (Sesión B):** lo anterior más `Gi0/0.20`: R1 `.65`, R2 `.81`, R3
+`.97`; en IPv6 `:64::1`, `:80::1`, `:96::1`.
 
-> Muéstrame la tabla de rutas de R1 y explica qué entrada usa para llegar a
-> 192.168.2.32/28. Indica el código, el siguiente salto y la interfaz de salida.
+### 5. DHCP
 
-**Comprueba:** en la Sesión A debe ser `S` por .57 (Gi0/2). En la Sesión B, `O`
-con costo. En IPv6 es `O 2001:DB8:13:32::/64 [110/2]` por `GigabitEthernet0/2`.
-Si sale `S` en la Sesión B, OSPF no convergió.
+**Predice:** cuántas concesiones habrá y en qué rango cae cada PC.
 
-### 6. Fallo controlado
+> Configura cada router como servidor DHCP de sus LAN conectadas: un pool por
+> LAN y, en la Sesión B, uno por VLAN. Pon los 9 PCs en DHCP, ejecuta
+> `fast_forward` y muéstrame las concesiones y el `ipconfig` de PC-A1 y PC-C1.
+> No asignes IP fija a ningún PC.
 
-**Predice:** qué debería pasar según el tipo de enrutamiento de tu sesión.
+**Comprueba:** una concesión por PC, dentro de la subred de su sede. En la
+Sesión A: LAN-A `.6–.14`, LAN-B `.22–.30`, LAN-C `.38–.46`. En la B: VLAN 10
+`.6–.14`, `.22–.30`, `.38–.46` y VLAN 20 `.70–.78`, `.86–.94`, `.102–.110`.
+En IPv6 no hay rangos: cada PC recibe una dirección del `/64` de su LAN y el
+gateway llega por RA (link-local).
 
-*Sesión A (rutas estáticas):*
+### 6. Enrutamiento
 
-> En R2 apaga GigabitEthernet0/2, ejecuta fast_forward y comprueba desde PC-B1 si
-> llega a PC-C1. Después vuelve a encender la interfaz. No guardes el archivo.
+**Predice:** cuántas rutas añade cada router y por qué vecino sale el paquete.
 
-**Comprueba:** el ping **falla**. La ruta estática no se adapta: ese es su límite.
+*Sesión A (estáticas):*
+
+> Configura las rutas estáticas de tu guía en los tres routers, usando como
+> siguiente salto la IP del vecino, no la propia. No uses ruta por defecto.
+> Muéstrame la tabla de R1 y la entrada que usa para `192.168.2.32/28`
+> (`2001:DB8:13:32::/64` en IPv6).
+
+**Comprueba:** 2 rutas `S` por router. En R1, LAN-C por `.57` (`Gi0/2`); en IPv6,
+`S 2001:DB8:13:32::/64` por `2001:DB8:13:56::1`. Si el siguiente salto es la IP
+propia, el paquete se pierde.
 
 *Sesión B (OSPF):*
 
-> En R1 apaga GigabitEthernet0/1, ejecuta fast_forward y comprueba desde PC-B1 si
-> llega a PC-C1 y por qué camino. Después vuelve a encender la interfaz. No
-> guardes el archivo.
+> Configura OSPF área 0 en los tres routers (OSPFv3 en IPv6) y deja el enlace
+> R2–R3 como respaldo con costo 100. Ejecuta `fast_forward` y muéstrame los
+> vecinos y la ruta de R2 a la LAN-C.
 
-**Comprueba:** el ping **sigue funcionando** y el camino pasa por R3: en IPv6,
-`2001:DB8:13:52::2`, y `show ipv6 route` en R2 marca métrica 101. Esa es la
-redundancia de la Sesión B y la pregunta 5 de la rúbrica. Al encender la interfaz
-el camino vuelve por R1 y la métrica baja a 3.
+**Comprueba:** 2 vecinos en `FULL` por router. R2 llega a LAN-C por R1 con
+métrica 2; por el respaldo sería 101. Si el respaldo no está en 100, el tráfico
+puede tomar el camino largo.
 
-### 7. Diagnóstico a ciegas
+### 7. Fallo controlado
+
+**Predice:** si el ping sobrevive y, si sobrevive, por dónde pasa.
+
+*Sesión A:*
+
+> Desde PC-B1 haz ping a PC-C1 y un tracert. Luego apaga `R2 Gi0/2`, ejecuta
+> `fast_forward` y repite el ping. Después vuelve a encender la interfaz. No
+> guardes.
+
+**Comprueba:** el ping **falla**. La ruta estática no se adapta: ese es su
+límite.
+
+*Sesión B:*
+
+> Desde PC-B1 haz ping a PC-C1 y un tracert. Luego apaga `R1 Gi0/1`, ejecuta
+> `fast_forward` y repite el tracert. Después vuelve a encender la interfaz. No
+> guardes.
+
+**Comprueba:** el ping **sigue funcionando** y el camino pasa por R3
+(`2001:DB8:13:52::2` en IPv6); la ruta de R2 a LAN-C marca métrica 101. Al
+encender, vuelve por R1 y baja a 3. Esa es la redundancia de la Sesión B.
+
+### 8. Diagnóstico y entrega
 
 **Prepara el fallo:** cambia tú una IP (por ejemplo, el gateway de una LAN) y no
 digas cuál.
 
 > Hay un fallo de conectividad entre PC-B1 y PC-C1. Diagnostícalo leyendo las
 > interfaces y las tablas de rutas, explica la causa y propón la corrección. No
-> cambies nada todavía; espera mi confirmación.
+> cambies nada hasta que lo confirme. Cuando lo confirme, corrígelo, comprueba
+> con un ping y guarda el laboratorio con un nombre propio, por ejemplo
+> `packet-tracer/entrega-A-ipv4-TUNOMBRE.pkt`.
 
-**Comprueba:** el agente debe encontrar la interfaz cambiada y proponer la IP
-correcta. Si acierta, pide que la corrija y verifica con un ping. Si no acierta,
-corrige tú y explica qué pista faltó en el prompt.
+**Comprueba:** encuentra la interfaz cambiada, propone la IP correcta, el ping
+vuelve y el archivo se guarda con tu nombre. Deben quedar los 15 enlaces y la
+tabla de rutas completa. No sobrescribas el `.pkt` de referencia.
 
-### 8. Reto de VLSM
+> Repite la lista completa en IPv6 y en la otra sesión. Cada vuelta empieza con
+> `new_network`: no reutilices el archivo anterior.
 
-**Predice:** qué subred libre usarías y por qué no vale la primera dirección libre.
+### Solución de los ejercicios
 
-> Sin cambiar nada, planifica una cuarta LAN de 10 hosts dentro de
-> 192.168.2.0/24. Indica red, máscara, gateway, rango DHCP y el bloque que
-> elegiste. No la configures.
-
-**Comprueba:** debe ser un `/28` alineado. En la **Sesión A** el primero libre es
-192.168.2.64/28; en la **Sesión B**, 192.168.2.112/28 (gateway .113, DHCP
-.118–.126). Si propone .60 (A) o .114 (B) como dirección de red, no alineó el
-bloque. Es solo IPv4: IPv6 no usa VLSM en este laboratorio.
-
-> Los ejercicios 6 y 7 modifican la red. Trabaja sobre una copia y no guardes el
-> `.pkt` original.
-
-### Archivos generados con pktctl
+Los cuatro `.pkt` de `packet-tracer/` son la solución. Compáralos solo al final:
 
 | Archivo | Contenido |
 |---------|-----------|
