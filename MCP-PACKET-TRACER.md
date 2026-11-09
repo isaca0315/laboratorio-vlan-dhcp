@@ -1,12 +1,13 @@
 # MCP de Cisco Packet Tracer (pktctl)
 
-Guía para que **Claude Desktop** u **OpenCode** construyan, configuren y prueben
-las redes de este laboratorio dentro de **Cisco Packet Tracer 9.0.1**, usando el
-servidor MCP [`pktctl`](https://github.com/TantiE100/pktctl).
+Guía para que **Claude Desktop** o **Hermes Agent** construyan, configuren y
+prueben las redes de este laboratorio dentro de **Cisco Packet Tracer 9.0.1**,
+usando el servidor MCP [`pktctl`](https://github.com/TantiE100/pktctl).
 
 Para que funcione hacen falta solo dos cosas:
 
-1. **El JSON** del servidor en la configuración del cliente.
+1. **La configuración** del servidor en el cliente (JSON en Claude Desktop, YAML
+   en Hermes).
 2. **El registro `pktctl.pta`**, cargado en Packet Tracer una sola vez.
 
 El repositorio incluye [`pktctl.pta`](pktctl.pta) ya generado. No depende del
@@ -46,8 +47,8 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | Registro manual con `meta` (el `.pta` sale byte a byte igual al registrado) | Probado | No probado |
 | `.pta` del repositorio (mismo procedimiento, secreto de práctica) | Generado y comprobado (478 bytes, determinista) | No cargado en Packet Tracer |
 | Ejercicios del Paso 7 (construcción desde cero) | Valores esperados comprobados en `Sesion-A-IPv4.pkt` y `Sesion-B-IPv6.pkt`; A-IPv6 y B-IPv4 salen de las guías | Construcción completa no ejecutada |
-| Bloques JSON de esta guía | Probados (4 de 4) | Probados (son los mismos) |
-| `opencode mcp list` → `pktctl connected` | Probado | No probado |
+| Bloques JSON y YAML de esta guía | JSON validados; YAML probado con `hermes mcp test` | JSON: mismos bloques; YAML: no probado |
+| Configuración de Hermes (`mcp_servers`, 72 herramientas) | Probado con un `HERMES_HOME` temporal | No probado |
 | Claude Desktop cargando el servidor en la ventana | Pendiente: hay que reiniciar Claude Desktop | No probado |
 | Generación del secreto en PowerShell | No aplica | No probado |
 
@@ -59,7 +60,7 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | Registro ExApp | [`pktctl.pta`](pktctl.pta) (el mismo archivo en cualquier sistema) · copia en `~/pktctl.pta` o `%USERPROFILE%\pktctl.pta` |
 | Secreto IPC | `~/.config/pktctl/secret` (Linux, modo 600, **no versionar**) |
 | App ID | `dev.pktctl` |
-| Config de OpenCode | `~/.config/opencode/opencode.json` → `mcp.servers.pktctl` (Linux) · `%USERPROFILE%\.config\opencode\opencode.json` (Windows) |
+| Config de Hermes | `hermes config edit` → `mcp_servers.pktctl` en `~/.hermes/config.yaml` (Linux/macOS) · `%LOCALAPPDATA%\hermes\config.yaml` (Windows) |
 | Config de Claude Desktop | `~/.config/Claude/claude_desktop_config.json` (Linux) · `%APPDATA%\Claude\claude_desktop_config.json` (Windows) |
 
 `pktctl` habla con Packet Tracer por **PTMP**, el protocolo nativo de
@@ -67,7 +68,7 @@ aplicaciones externas (puertos `39000`–`39009`). Expone 72 herramientas:
 topología, cables, CLI de IOS, DHCP/PCs, servidores, simulación, actividades y
 acceso directo a la API IPC.
 
-> Sigue **un solo cliente**: Claude Desktop (Paso 3A) **o** OpenCode (Paso 3B).
+> Sigue **un solo cliente**: Claude Desktop (Paso 3A) **o** Hermes Agent (Paso 3B).
 > No hace falta hacer los dos.
 
 ## Paso 1: descargar pktctl
@@ -236,48 +237,56 @@ barras normales:
 }
 ```
 
-### Paso 3B: OpenCode
+### Paso 3B: Hermes Agent
 
-Abre `%USERPROFILE%\.config\opencode\opencode.json` (Linux:
-`~/.config/opencode/opencode.json`). Si no existe, créalo con este contenido y
-añade `pktctl` dentro de `mcp.servers`, no dentro de `mcpServers`:
-
-```json
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "servers": {
-      "pktctl": {
-        "type": "local",
-        "command": ["C:\\Users\\<usuario>\\pktctl\\pktctl.exe"],
-        "environment": {
-          "PKTCTL_APP_ID": "dev.pktctl",
-          "PKTCTL_SECRET": "eb9a6706129c3c6d40979a5540e110e76773eba055862c33"
-        }
-      }
-    }
-  }
-}
-```
-
-Si ya tenías otras claves, añade solo `"mcp"` y no dupliques `"$schema"`.
-
-En Linux/macOS también puedes usar la CLI:
+Hermes Agent (Nous Research) guarda los servidores MCP en `mcp_servers`, dentro
+de `config.yaml`. La forma segura de abrir el archivo correcto es:
 
 ```sh
-opencode mcp add pktctl --global \
-  --env PKTCTL_APP_ID=dev.pktctl \
-  --env "PKTCTL_SECRET=eb9a6706129c3c6d40979a5540e110e76773eba055862c33" \
-  -- "$HOME/.local/bin/pktctl"
+hermes config edit
 ```
 
-Comprueba que OpenCode ve el servidor:
+También puedes editarlo a mano:
+
+- Linux/macOS: `~/.hermes/config.yaml`
+- Windows (instalación por script): `%LOCALAPPDATA%\hermes\config.yaml`
+
+Añade la entrada `pktctl` con tu ruta y el secreto de práctica. En YAML, las
+comillas simples dejan las barras invertidas tal cual:
+
+```yaml
+mcp_servers:
+  pktctl:
+    command: 'C:\Users\<usuario>\pktctl\pktctl.exe'
+    args: []
+    env:
+      PKTCTL_APP_ID: 'dev.pktctl'
+      PKTCTL_SECRET: 'eb9a6706129c3c6d40979a5540e110e76773eba055862c33'
+```
+
+En Linux/macOS cambia solo `command`:
+
+```yaml
+    command: '/home/<usuario>/.local/bin/pktctl'
+```
+
+Si ya tenías otros servidores bajo `mcp_servers`, añade `pktctl` con su sangría
+y no borres los demás.
+
+Comprueba que Hermes lo carga:
 
 ```sh
-opencode mcp list
+hermes mcp list
+hermes mcp test pktctl
 ```
 
-**Debe mostrar** `pktctl` con estado `connected`.
+**Debe aceptar la conexión** y listar las herramientas. Después entra en
+`hermes chat` y pide **«ejecuta status de pktctl»**: la respuesta correcta es
+`connected: true`. Si editaste el archivo con Hermes ya abierto, ejecuta
+`/reload-mcp` dentro de la sesión.
+
+> Si `hermes mcp test` falla con `rejected app id`, el problema es el Paso 4 o 5
+> (registro `.pta` o secreto), no la configuración YAML.
 
 ## Paso 4: conseguir el registro `.pta`
 
@@ -644,8 +653,9 @@ Notas de la API que conviene conocer:
   las prácticas. No lo reutilices en un equipo o una red que no sean del
   laboratorio.
 - El secreto queda en claro en la config del cliente (`claude_desktop_config.json`
-  y `opencode.json`) y en el XML temporal del registro manual. Mantén esos
-  archivos privados. En Linux, `claude_desktop_config.json` queda en modo `600`.
+  y el `config.yaml` de Hermes) y en el XML temporal del registro manual.
+  Mantén esos archivos privados: el `config.yaml` de Hermes también puede
+  contener claves de API.
 - En **Extensions → IPC → Options**, deja **Allow Remote Applications**
   desactivado salvo que lo necesites: PT escucha en todas las interfaces.
 - Antes de pedir cambios masivos, guarda una copia del `.pkt`. El agente puede
@@ -663,7 +673,7 @@ Notas de la API que conviene conocer:
 | `does not have the necessary privilege` | El `.pta` se registró con una plantilla vieja. Genera y carga el de la plantilla `v0.2.2`. |
 | Claude Desktop no muestra las herramientas | JSON inválido (coma sobrante), ruta inexistente o Claude no se cerró con **Quit**. Revisa el Paso 3A y los logs. |
 | Claude Desktop no arranca `pktctl` en Windows | La ruta del `command` debe ser absoluta y con `\\`. Claude no siempre hereda el `PATH`. |
-| `opencode mcp list` muestra `failed` | Revisa la ruta del binario y `PKTCTL_APP_ID` / `PKTCTL_SECRET`. |
+| `hermes mcp test pktctl` muestra `failed` | Revisa la ruta del binario y `PKTCTL_APP_ID` / `PKTCTL_SECRET`. |
 | Los cambios no aparecen | Ejecuta `fast_forward` y vuelve a consultar; STP/DHCP/OSPF tardan en converger. |
 | PT se cuelga o no responde | Cierra PT normalmente y vuelve a abrirlo. No hace falta reinstalar `pktctl`. |
 
@@ -672,7 +682,7 @@ Notas de la API que conviene conocer:
 **Windows:** para actualizar, sustituye `pktctl.exe` por el de un zip nuevo. Para
 desinstalar, borra `C:\Users\<usuario>\pktctl\`, la carpeta
 `%USERPROFILE%\.config\pktctl`, y la entrada `pktctl` de
-`claude_desktop_config.json` o de `opencode.json`. En Packet Tracer, quita el
+`claude_desktop_config.json` o de `config.yaml`. En Packet Tracer, quita el
 registro desde **Extensions → IPC → Configure Apps** (si la lista lo permite; no
 lo he probado en Windows).
 
@@ -688,7 +698,7 @@ install -m 755 "pktctl-$VERSION-x86_64-unknown-linux-gnu/pktctl" ~/.local/bin/pk
 # Desinstalar
 rm ~/.local/bin/pktctl
 rm -r ~/.config/pktctl
-# y borra mcp.servers.pktctl de ~/.config/opencode/opencode.json
+# y borra mcp_servers.pktctl de ~/.hermes/config.yaml
 # y mcpServers.pktctl de ~/.config/Claude/claude_desktop_config.json
 ```
 

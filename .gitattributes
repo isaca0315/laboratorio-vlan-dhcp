@@ -1,2 +1,6 @@
+# Los proyectos de Packet Tracer son binarios: nunca deben convertirse ni fusionarse
+*.pkt binary
+*.pktb binary
+
 # El registro de Packet Tracer está cifrado; nunca debe convertirse ni fusionarse
 *.pta binary

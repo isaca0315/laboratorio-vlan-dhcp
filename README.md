@@ -132,15 +132,15 @@ Se regeneran con `python3 tools/build_teoria_lab.py` y
 ## Automatización con Packet Tracer (MCP)
 
 [`MCP-PACKET-TRACER.md`](MCP-PACKET-TRACER.md) explica cómo está configurado
-`pktctl`, el servidor MCP que maneja Packet Tracer desde **Claude Desktop** u
-**OpenCode**: crear topologías, cablear, escribir comandos IOS, ejecutar
+`pktctl`, el servidor MCP que maneja Packet Tracer desde **Claude Desktop** o
+**Hermes Agent**: crear topologías, cablear, escribir comandos IOS, ejecutar
 ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye los pasos para
 Windows y Linux, el registro `.pta`, ocho ejercicios para montar el laboratorio
 desde cero y la solución de problemas.
 
-Hacen falta solo el JSON del cliente y el registro [`pktctl.pta`](pktctl.pta),
-que ya está en el repositorio y sirve en cualquier sistema operativo. Requiere
-Packet Tracer 9.0.1 abierto.
+Hacen falta solo la configuración del cliente (JSON o YAML) y el registro
+[`pktctl.pta`](pktctl.pta), que ya está en el repositorio y sirve en cualquier
+sistema operativo. Requiere Packet Tracer 9.0.1 abierto.
 
 ## Rúbrica global (100 puntos)
 
