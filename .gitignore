@@ -5,6 +5,10 @@
 # Backups de configuracion de Packet Tracer
 *-backup.cfg
 
+# Material de origen descargado (no forma parte del repositorio)
+Laboratorio N*
+Infraestructura Segura*.pptx
+
 # Sistema / editores
 .DS_Store
 Thumbs.db

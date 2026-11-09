@@ -1,16 +1,35 @@
 # MCP de Cisco Packet Tracer (pktctl)
 
-Guía para que un agente de **Claude Desktop** u **OpenCode** construya,
-configure y pruebe las redes de este laboratorio dentro de **Cisco Packet
-Tracer 9.0.1** usando el servidor MCP
-[`pktctl`](https://github.com/TantiE100/pktctl).
+Guía para que **Claude Desktop** u **OpenCode** construyan, configuren y prueben
+las redes de este laboratorio dentro de **Cisco Packet Tracer 9.0.1**, usando el
+servidor MCP [`pktctl`](https://github.com/TantiE100/pktctl).
 
-> `pktctl` no reemplaza a Packet Tracer: lo maneja. Necesita la ventana de
-> Packet Tracer abierta y el `.pkt` cargado. No funciona en modo headless.
+Para que funcione hacen falta solo dos cosas:
+
+1. **El JSON** del servidor en la configuración del cliente.
+2. **El registro `pktctl.pta`**, cargado en Packet Tracer una sola vez.
+
+> `pktctl` no reemplaza a Packet Tracer: lo maneja. Necesita la ventana de Packet
+> Tracer abierta y el `.pkt` cargado. No funciona en modo headless.
+
+## Índice
+
+1. [Estado de la verificación](#estado-de-la-verificación)
+2. [Qué instala](#qué-instala)
+3. [Descargar pktctl](#paso-1-descargar-pktctl)
+4. [Generar el secreto](#paso-2-generar-el-secreto)
+5. [Configurar el cliente](#paso-3-configurar-el-cliente)
+6. [Generar el registro `.pta`](#paso-4-generar-el-registro-pta)
+7. [Cargar el registro en Packet Tracer](#paso-5-cargar-el-registro-en-packet-tracer)
+8. [Comprobar la conexión](#paso-6-comprobar-la-conexión)
+9. [Cómo se usa en el laboratorio](#paso-7-cómo-se-usa-en-el-laboratorio)
+10. [Seguridad](#seguridad)
+11. [Problemas típicos](#problemas-típicos)
+12. [Actualizar y desinstalar](#actualizar-y-desinstalar)
 
 ## Estado de la verificación
 
-Esta guía se probó **en Linux**. La parte de Windows está escrita con la misma
+La guía se probó **en Linux**. La parte de Windows está escrita con la misma
 lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 
 | Paso | Linux | Windows |
@@ -20,14 +39,14 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | Estructura del zip (`pktctl.exe` dentro de una carpeta) | Probado | Probado en el zip; no extraído en Windows |
 | Servidor MCP con la configuración de Claude Desktop (`initialize`, 72 herramientas, `status`) | Probado | No probado |
 | Respuesta con secreto incorrecto (`rejected app id`) | Probado | No probado |
-| `setup_exapp` | **Falla** en esta instalación (ver abajo) | No probado |
+| `setup_exapp` | **Falla** en esta instalación (ver Paso 4) | No probado |
 | Registro manual con `meta` (el `.pta` sale byte a byte igual al registrado) | Probado | No probado |
 | Bloques JSON de esta guía | Probados (4 de 4) | Probados (son los mismos) |
 | `opencode mcp list` → `pktctl connected` | Probado | No probado |
 | Claude Desktop cargando el servidor en la ventana | Pendiente: hay que reiniciar Claude Desktop | No probado |
 | Generación del secreto en PowerShell | No aplica | No probado |
 
-## Qué instala esta configuración
+## Qué instala
 
 | Componente | Ruta / valor |
 |------------|--------------|
@@ -43,43 +62,37 @@ aplicaciones externas (puertos `39000`–`39009`). Expone 72 herramientas:
 topología, cables, CLI de IOS, DHCP/PCs, servidores, simulación, actividades y
 acceso directo a la API IPC.
 
-## Instalar pktctl
+> Sigue **un solo cliente**: Claude Desktop (Paso 3A) **o** OpenCode (Paso 3B).
+> No hace falta hacer los dos.
 
-Requisitos: Packet Tracer **9.0.1** y un cliente MCP (Claude Desktop u
-OpenCode). Internet solo para descargar. En Linux hace falta glibc **2.39** o
-superior (Ubuntu 24.04 / Debian 13).
+## Paso 1: descargar pktctl
+
+Requisitos: Packet Tracer **9.0.1**, un cliente MCP y conexión a Internet para
+descargar. En Linux hace falta glibc **2.39** o superior (Ubuntu 24.04 / Debian 13).
 
 ### Windows
 
-1. **Descarga** `pktctl-0.2.2-x86_64-pc-windows-msvc.zip` desde los
+1. Descarga `pktctl-0.2.2-x86_64-pc-windows-msvc.zip` desde los
    [releases](https://github.com/TantiE100/pktctl/releases/tag/v0.2.2).
-2. **Extrae el zip.** Dentro hay una carpeta `pktctl-0.2.2-x86_64-pc-windows-msvc`
+2. Abre el zip. Dentro hay **una carpeta** `pktctl-0.2.2-x86_64-pc-windows-msvc`
    con `pktctl.exe`. Crea `C:\Users\<usuario>\pktctl\` y copia **solo**
-   `pktctl.exe` ahí, para que la ruta final sea
+   `pktctl.exe` ahí. La ruta final debe ser exactamente
    `C:\Users\<usuario>\pktctl\pktctl.exe`.
-3. **Comprueba** que arranca. Abre PowerShell:
 
    ```powershell
-   C:\Users\<usuario>\pktctl\pktctl.exe --version
+   New-Item -ItemType Directory -Force "$env:USERPROFILE\pktctl" | Out-Null
+   Copy-Item "<ruta-del-zip>\pktctl-0.2.2-x86_64-pc-windows-msvc\pktctl.exe" "$env:USERPROFILE\pktctl\pktctl.exe" -Force
    ```
 
-   Debe responder `pktctl 0.2.2`. Si Windows Defender o SmartScreen bloquea el
-   archivo, la ruta de excepción la decide el equipo del alumno; no lo he
-   comprobado en Windows.
-4. **Genera el secreto** en PowerShell. Guárdalo: va en la config del cliente y
-   en el `.pta` de Packet Tracer, y tiene que ser idéntico en los dos sitios:
+3. Comprueba que arranca:
 
    ```powershell
-   $bytes = New-Object byte[] 24
-   [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-   $secret = -join ($bytes | ForEach-Object { $_.ToString('x2') })
-   $secret
+   & "$env:USERPROFILE\pktctl\pktctl.exe" --version
    ```
 
-   Devuelve 48 caracteres hexadecimales.
-
-El App ID es `dev.pktctl`. Puedes usar otro con formato de dominio inverso, pero
-entonces cámbialo en todas las configs y en el registro.
+   **Debe responder** `pktctl 0.2.2`. Si Windows Defender o SmartScreen lo
+   bloquea, la excepción la decide el equipo del alumno; no lo he comprobado en
+   Windows.
 
 ### Linux
 
@@ -91,26 +104,53 @@ sha256sum -c SHA256SUMS --ignore-missing
 tar -xzf "pktctl-$VERSION-x86_64-unknown-linux-gnu.tar.gz"
 install -m 755 "pktctl-$VERSION-x86_64-unknown-linux-gnu/pktctl" ~/.local/bin/pktctl
 pktctl --version
-SECRET=$(openssl rand -hex 24)
 ```
 
 En macOS el archivo es `pktctl-$VERSION-x86_64-apple-darwin.tar.gz`
 (o `aarch64-apple-darwin` en Apple Silicon).
 
-## Registrar pktctl en el cliente
+## Paso 2: generar el secreto
 
-Los dos clientes necesitan el mismo App ID y el mismo secreto.
+El secreto es una clave aleatoria que comparten el cliente y Packet Tracer.
+Tiene que ser **el mismo** en todos los sitios donde lo pegues.
 
-### Claude Desktop
+### Windows
 
-Claude Desktop arranca `pktctl` como proceso hijo y habla MCP por stdio. No hay
-que instalar nada más.
+En PowerShell:
 
-**Windows**
+```powershell
+$bytes = New-Object byte[] 24
+[System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+$secret = -join ($bytes | ForEach-Object { $_.ToString('x2') })
+$secret
+```
 
-1. Abre el Explorador de archivos, escribe `%APPDATA%\Claude` en la barra de
-   direcciones y pulsa Intro.
-2. Abre `claude_desktop_config.json` con el Bloc de notas. Si no existe, créalo
+Devuelve **48 caracteres** hexadecimales. Guárdalo en un archivo temporal: lo
+necesitas en el Paso 3 y en el Paso 4.
+
+> La variable `$secret` solo existe en esa ventana de PowerShell. Si la cierras,
+> genera un secreto nuevo y cámbialo en todos los sitios donde lo pegaste.
+
+### Linux
+
+```sh
+SECRET=$(openssl rand -hex 24)
+```
+
+El App ID es `dev.pktctl`. Puedes usar otro con formato de dominio inverso, pero
+entonces cámbialo en todas las configs y en el registro.
+
+## Paso 3: configurar el cliente
+
+Haz **solo una** de estas dos opciones.
+
+### Paso 3A: Claude Desktop
+
+1. Cierra Claude Desktop del todo: icono de la bandeja del sistema → clic
+   derecho → **Quit**. Cerrar la ventana no basta.
+2. Abre el Explorador de archivos, escribe `%APPDATA%\Claude` en la barra de
+   direcciones y pulsa Intro. Si la carpeta no existe, créala con ese nombre.
+3. Abre `claude_desktop_config.json` con el Bloc de notas. Si no existe, créalo
    con este contenido:
 
    ```json
@@ -119,8 +159,11 @@ que instalar nada más.
    }
    ```
 
-3. Añade la entrada `pktctl` dentro de `mcpServers`. Las barras invertidas van
-   dobles (`\\`) y la ruta debe ser absoluta:
+   > Si no encuentras la carpeta: Claude Desktop → **Settings → Developer →
+   > Edit Config**. Ese botón abre el mismo archivo.
+
+4. Dentro de `mcpServers`, añade la entrada `pktctl`. Sustituye `<usuario>` y
+   `PEGA-AQUI-TU-SECRETO`. Las barras invertidas van dobles:
 
    ```json
    {
@@ -130,37 +173,73 @@ que instalar nada más.
          "args": [],
          "env": {
            "PKTCTL_APP_ID": "dev.pktctl",
-           "PKTCTL_SECRET": "el-secreto-del-paso-4"
+           "PKTCTL_SECRET": "PEGA-AQUI-TU-SECRETO"
          }
        }
      }
    }
    ```
 
-   Si ya hay otros servidores, añade solo la entrada `pktctl` con su coma
-   delante o detrás; no borres las demás.
-4. Cierra Claude Desktop del todo: icono de la bandeja del sistema →
-   **Quit**. Cerrar la ventana no basta. Vuelve a abrirlo.
+   Si ya tenías otros servidores, añade solo la entrada `pktctl` con su coma y no
+   borres las demás.
 
-**Linux**
+5. Guarda el archivo y comprueba que el JSON es válido:
 
-Mismo bloque en `~/.config/Claude/claude_desktop_config.json`, con barras
-normales:
+   ```powershell
+   Get-Content "$env:APPDATA\Claude\claude_desktop_config.json" -Raw | ConvertFrom-Json | Out-Null
+   "JSON correcto"
+   ```
+
+   Si aparece un error, revisa comas, llaves y comillas. No pegues el archivo en
+   webs externas: contiene tu secreto.
+
+6. Abre Claude Desktop de nuevo.
+
+**Linux:** el mismo bloque, en `~/.config/Claude/claude_desktop_config.json` y con
+barras normales:
 
 ```json
-"pktctl": {
-  "command": "/home/<usuario>/.local/bin/pktctl",
-  "args": [],
-  "env": {
-    "PKTCTL_APP_ID": "dev.pktctl",
-    "PKTCTL_SECRET": "el-secreto-que-generaste"
+{
+  "mcpServers": {
+    "pktctl": {
+      "command": "/home/<usuario>/.local/bin/pktctl",
+      "args": [],
+      "env": {
+        "PKTCTL_APP_ID": "dev.pktctl",
+        "PKTCTL_SECRET": "el-secreto-que-generaste"
+      }
+    }
   }
 }
 ```
 
-### OpenCode
+### Paso 3B: OpenCode
 
-**Linux/macOS:**
+Abre `%USERPROFILE%\.config\opencode\opencode.json` (Linux:
+`~/.config/opencode/opencode.json`). Si no existe, créalo con este contenido y
+añade `pktctl` dentro de `mcp.servers`, no dentro de `mcpServers`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "pktctl": {
+        "type": "local",
+        "command": ["C:\\Users\\<usuario>\\pktctl\\pktctl.exe"],
+        "environment": {
+          "PKTCTL_APP_ID": "dev.pktctl",
+          "PKTCTL_SECRET": "PEGA-AQUI-TU-SECRETO"
+        }
+      }
+    }
+  }
+}
+```
+
+Si ya tenías otras claves, añade solo `"mcp"` y no dupliques `"$schema"`.
+
+En Linux/macOS también puedes usar la CLI:
 
 ```sh
 opencode mcp add pktctl --global \
@@ -169,139 +248,138 @@ opencode mcp add pktctl --global \
   -- "$HOME/.local/bin/pktctl"
 ```
 
-**Windows:** edita `%USERPROFILE%\.config\opencode\opencode.json` y añade la
-entrada dentro de `mcp.servers` (no dentro de `mcpServers`):
+Comprueba que OpenCode ve el servidor:
 
-```json
-{
-  "mcp": {
-    "servers": {
-      "pktctl": {
-        "type": "local",
-        "command": ["C:\\Users\\<usuario>\\pktctl\\pktctl.exe"],
-        "environment": {
-          "PKTCTL_APP_ID": "dev.pktctl",
-          "PKTCTL_SECRET": "el-secreto-del-paso-4"
-        }
-      }
-    }
-  }
-}
+```sh
+opencode mcp list
 ```
 
-## Registro de pktctl en Packet Tracer
+**Debe mostrar** `pktctl` con estado `connected`.
+
+## Paso 4: generar el registro `.pta`
 
 Packet Tracer solo acepta aplicaciones registradas. El registro es un archivo
-`pktctl.pta` que se crea **una vez** y se carga en Packet Tracer con
-**Configure Apps**.
-
-Hay dos formas de crearlo.
+`pktctl.pta` que se crea **una vez**. Hay dos formas.
 
 ### Opción A: `setup_exapp` (desde el cliente)
 
-Pide al agente **«ejecuta setup_exapp»**. Escribe el `.pta` en
-`PKTCTL_SETUP_DIR` o, por defecto, en `~/.config/pktctl/` (Linux) o
-`%USERPROFILE%\.config\pktctl\` (Windows).
+Pide al agente **«ejecuta setup_exapp»**. Escribe el `.pta` en `PKTCTL_SETUP_DIR`
+o, por defecto, en `~/.config/pktctl/` (Linux) o `%USERPROFILE%\.config\pktctl\`
+(Windows). Comprueba que existe:
 
-> **En Linux con la instalación de Packet Tracer de esta clase no funciona.**
-> `setup_exapp` solo busca `meta` en `<carpeta>/extensions/`, y en esta
-> instalación `meta` está en `bin/` dentro de un AppImage montado en `/tmp`
-> (la ruta cambia en cada arranque). Responde:
-> `could not find Packet Tracer's meta tool`. Usa la opción B.
+```powershell
+Test-Path "$env:USERPROFILE\.config\pktctl\pktctl.pta"
+```
+
+**Debe responder** `True`. Si responde `could not find Packet Tracer's meta
+tool`, usa la opción B.
+
+> **En Linux con la instalación de esta clase no funciona.** `setup_exapp` solo
+> busca `meta` en `<carpeta>/extensions/`, y en esta instalación `meta` está en
+> `bin/` dentro de un AppImage montado en `/tmp` (la ruta cambia en cada
+> arranque). Por eso se responde con la opción B.
 
 ### Opción B: manual con `meta` (probada en Linux)
 
 `meta` es la herramienta de Packet Tracer que cifra la plantilla XML. Cuesta un
 minuto y no depende de `setup_exapp`.
 
-**1. Localiza `meta`** dentro de la carpeta de instalación de Packet Tracer.
+1. **Localiza `meta`** dentro de la carpeta de instalación de Packet Tracer.
+   - Linux (AppImage): `bin/meta`. Búscalo con
+     `find <carpeta de PT> -name meta -type f`.
+   - Windows: el archivo se llama `meta.exe`. Búscalo en
+     `C:\Program Files\Cisco Packet Tracer 9.0.1\` (normalmente en una
+     subcarpeta `extensions` o `bin`). Anota la ruta completa.
+2. **Prepara la plantilla, cámbiale el secreto y cifra.**
 
-- Linux (AppImage): `bin/meta`. Con `find <carpeta de PT> -name meta -type f`.
-- Windows: el archivo se llama `meta.exe`. Busca `meta.exe` en la carpeta donde
-  instalaste Packet Tracer con el buscador del Explorador. Lo normal es que esté
-  en una subcarpeta `extensions` o `bin`.
+   *Linux:*
 
-**2. Prepara la plantilla.** Descárgala del tag `v0.2.2` de pktctl, cambia el
-secreto por el tuyo y cifra:
+   ```sh
+   mkdir -p ~/pktctl-registro && cd ~/pktctl-registro
+   curl -fsSL https://raw.githubusercontent.com/TantiE100/pktctl/v0.2.2/crates/pktctl/assets/pktctl-exapp.xml -o pktctl-exapp.xml
+   SECRET=$(cat ~/.config/pktctl/secret)
+   sed -i "s|REPLACE_WITH_YOUR_SECRET|$SECRET|" pktctl-exapp.xml
+   "<ruta a meta>" pktctl.pta pktctl-exapp.xml
+   rm pktctl-exapp.xml
+   mkdir -p ~/.config/pktctl && cp pktctl.pta ~/.config/pktctl/pktctl.pta
+   ```
 
-*Linux:*
+   *Windows (PowerShell, sin probar en Windows):*
 
-```sh
-mkdir -p ~/pktctl-registro && cd ~/pktctl-registro
-curl -fsSL https://raw.githubusercontent.com/TantiE100/pktctl/v0.2.2/crates/pktctl/assets/pktctl-exapp.xml -o pktctl-exapp.xml
-SECRET=$(cat ~/.config/pktctl/secret)
-sed -i "s|REPLACE_WITH_YOUR_SECRET|$SECRET|" pktctl-exapp.xml
-"<ruta a meta>" pktctl.pta pktctl-exapp.xml
-rm pktctl-exapp.xml
-mkdir -p ~/.config/pktctl && cp pktctl.pta ~/.config/pktctl/pktctl.pta
-```
+   ```powershell
+   $secret = "PEGA-AQUI-TU-SECRETO"
+   $dir = "$env:USERPROFILE\pktctl-registro"
+   New-Item -ItemType Directory -Force $dir | Out-Null
+   Set-Location $dir
+   Invoke-WebRequest -Uri "https://raw.githubusercontent.com/TantiE100/pktctl/v0.2.2/crates/pktctl/assets/pktctl-exapp.xml" -OutFile "pktctl-exapp.xml"
+   (Get-Content "pktctl-exapp.xml") -replace "REPLACE_WITH_YOUR_SECRET", $secret | Set-Content "pktctl-exapp.xml"
+   & "<ruta a meta.exe>" "pktctl.pta" "pktctl-exapp.xml"
+   Remove-Item "pktctl-exapp.xml"
+   New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\pktctl" | Out-Null
+   Copy-Item "pktctl.pta" "$env:USERPROFILE\.config\pktctl\pktctl.pta" -Force
+   ```
 
-*Windows (PowerShell, sin probar en Windows):*
+3. Comprueba el resultado:
 
-```powershell
-mkdir $env:USERPROFILE\pktctl-registro; cd $env:USERPROFILE\pktctl-registro
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/TantiE100/pktctl/v0.2.2/crates/pktctl/assets/pktctl-exapp.xml -OutFile pktctl-exapp.xml
-(Get-Content pktctl-exapp.xml) -replace 'REPLACE_WITH_YOUR_SECRET', $secret | Set-Content pktctl-exapp.xml
-& "<ruta a meta.exe>" pktctl.pta pktctl-exapp.xml
-Remove-Item pktctl-exapp.xml
-New-Item -ItemType Directory -Force "$env:USERPROFILE\.config\pktctl" | Out-Null
-Copy-Item pktctl.pta "$env:USERPROFILE\.config\pktctl\pktctl.pta"
-```
+   ```powershell
+   Test-Path "$env:USERPROFILE\.config\pktctl\pktctl.pta"
+   ```
 
-`$secret` es la variable del paso 4 de Windows. Si cerraste esa ventana de
-PowerShell, vuelve a generar el secreto **y** cambia el valor en la config del
-cliente, porque tienen que coincidir.
+   **Debe responder** `True`.
 
-El XML contiene el secreto en claro. Por eso se borra justo después de cifrarlo.
+El XML contiene el secreto en claro; por eso se borra justo después de cifrarlo.
+No lo compartas.
 
-### Cargar el `.pta` en Packet Tracer
+## Paso 5: cargar el registro en Packet Tracer
 
-1. Abre Packet Tracer.
-2. **Extensions → IPC → Configure Apps → Add** y selecciona el `.pta`
-   (`~/.config/pktctl/pktctl.pta` o `%USERPROFILE%\.config\pktctl\pktctl.pta`).
-   Si el diálogo no muestra archivos ocultos, escribe la ruta a mano.
+Este paso se hace **una sola vez**.
+
+1. Abre **Cisco Packet Tracer 9.0.1**.
+2. Ve a **Extensions → IPC → Configure Apps → Add** y selecciona el `.pta`
+   (`%USERPROFILE%\.config\pktctl\pktctl.pta` o
+   `~/.config/pktctl/pktctl.pta`). Si el diálogo no muestra archivos ocultos,
+   escribe la ruta completa a mano.
 3. Pulsa **Ok**. La app aparece en la lista como `pktctl`.
-4. Cierra Packet Tracer con **File → Exit**. No lo mates con `kill` ni con el
-   Administrador de tareas: solo al salir normalmente guarda la lista de apps.
+4. Cierra Packet Tracer con **File → Exit**. No lo cierres con la X, con `kill`
+   ni con el Administrador de tareas: solo al salir normalmente guarda la lista
+   de aplicaciones registradas.
+5. Vuelve a abrir Packet Tracer.
 
 > Si Packet Tracer se cierra mal después de registrar, el registro se pierde:
 > repite el paso y vuelve a salir con **File → Exit**.
 
 > **No pulses «Launch» sobre `pktctl`.** Verás
 > `Cannot launch ExApp. The executable file name or location may be incorrect...`.
-> Es normal: el cliente MCP lanza `pktctl` y se conecta por TCP. El registro
-> está bien si la app aparece en la lista y `status` responde `connected: true`.
+> Es normal: el cliente MCP lanza `pktctl` y se conecta por TCP. El registro está
+> bien si la app aparece en la lista y `status` responde `connected: true`.
 
-## Verificar la conexión
+## Paso 6: comprobar la conexión
 
-**Claude Desktop.** Reinicia Claude (paso anterior) y, en una conversación
-nueva, pregunta:
+Con Packet Tracer abierto, pide al cliente:
 
 > Comprueba el estado de Packet Tracer.
 
-Claude debe llamar a `status`. Si todavía no cargaste el `.pta`, responde
-`rejected app id`: el servidor está bien configurado y falta la sección de
-registro. Con el registro cargado y Packet Tracer abierto, responde
-`connected: true` con la versión de PT, los dispositivos y los enlaces. Los
-logs del servidor están en `%APPDATA%\Claude\logs\mcp-server-pktctl.log`
-(Windows) o `~/.config/Claude/logs/mcp-server-pktctl.log` (Linux).
-Esa convención de nombres es la de los otros servidores de tu instalación; en
-`pktctl` todavía no lo he visto aparecer.
+**Respuesta correcta:** `connected: true`, con la versión de Packet Tracer y el
+número de dispositivos y enlaces abiertos.
 
-**OpenCode:**
+| Lo que ves | Qué significa | Qué hacer |
+|------------|---------------|-----------|
+| `connected: true` | Todo está bien | Sigue con el Paso 7 |
+| `Packet Tracer is not reachable` | Packet Tracer no está abierto, o IPC usa un puerto fuera de `39000`–`39009` | Ábrelo y revisa **Extensions → IPC → Options** |
+| `rejected app id dev.pktctl` | El registro no está cargado o el secreto no coincide | Repite el Paso 5 y usa el mismo secreto en el cliente y en el `.pta` |
+| `Cannot launch ExApp...` al pulsar **Launch** | Es lo esperado | No pulses Launch; usa `status` |
 
-```sh
-opencode mcp list
-```
+Los logs del servidor están en `%APPDATA%\Claude\logs\mcp-server-pktctl.log`
+(Windows) o `~/.config/Claude/logs/mcp-server-pktctl.log` (Linux). Esa convención
+de nombres es la de los otros servidores de esta instalación; en `pktctl` todavía
+no la he visto aparecer.
 
-Debe mostrar `✓ pktctl  connected`.
-
-## Cómo se usa en estas sesiones
+## Paso 7: cómo se usa en el laboratorio
 
 Abre el `.pkt` que quieras trabajar y pide las acciones en lenguaje natural. El
 agente descubre los nombres con `list_devices`, ejecuta comandos con `run_cli` y
-usa `fast_forward` después de cablear o configurar DHCP/OSPF para que STP, DHCP
-y routing converjan antes de probar.
+usa `fast_forward` después de cablear o configurar DHCP/OSPF para que STP, DHCP y
+routing converjan antes de probar.
 
 Ejemplos con los archivos de `packet-tracer/`:
 
@@ -311,8 +389,8 @@ Ejemplos con los archivos de `packet-tracer/`:
 > que R1, R2 y R3 tienen sus direcciones y que `ipconfig` de PC-A1 muestra un
 > `/64` por DHCPv6.
 
-> Desde PC-A1 haz ping a PC-B1 y PC-C1. Si falla, revisa `show ipv6 route` en
-> los tres routers.
+> Desde PC-A1 haz ping a PC-B1 y PC-C1. Si falla, revisa `show ipv6 route` en los
+> tres routers.
 
 **Sesión B (hub-and-spoke)**
 
@@ -324,9 +402,9 @@ Ejemplos con los archivos de `packet-tracer/`:
 
 **Construir desde cero**
 
-> Crea la topología de la Sesión A: tres routers 2911, tres switches 2960 y
-> nueve PCs. Cablea según `SESION-A.md`, guarda como `sesion-a-nueva.pkt` y
-> aplica las configuraciones de `config/`.
+> Crea la topología de la Sesión A: tres routers 2911, tres switches 2960 y nueve
+> PCs. Cablea según `SESION-A.md`, guarda como `sesion-a-nueva.pkt` y aplica las
+> configuraciones de `config/`.
 
 ### Archivos generados con pktctl
 
@@ -353,7 +431,7 @@ Notas de la API que conviene conocer:
   `run_cli` en modo `global`/`current`.
 - Después de `enable secret cisco`, pasa `enable_password: "cisco"` a `run_cli`.
 
-## Herramientas que más vas a usar
+### Herramientas que más vas a usar
 
 | Herramienta | Para qué |
 |-------------|----------|
@@ -384,18 +462,26 @@ Notas de la API que conviene conocer:
 
 | Síntoma | Causa y solución |
 |---------|------------------|
+| `pktctl 0.2.2` no aparece en el Paso 1 | El `.exe` no está en `C:\Users\<usuario>\pktctl\`, o el nombre no es exacto. |
 | `Packet Tracer is not reachable` | PT cerrado, o IPC en un puerto fuera de `39000`–`39009`. Abre PT y revisa **Extensions → IPC → Options**. |
-| `Cannot launch ExApp...` al pulsar **Launch** | Esperado. El cliente MCP lanza `pktctl`, no PT. Ignora el aviso y usa `status`; si da `connected: true`, todo está bien. |
-| `rejected app id dev.pktctl` | Falta cargar el `.pta`, el secreto no coincide con el del `.pta`, o PT no salió con **File → Exit**. Vuelve a generar el `.pta` con el mismo secreto y cárgalo. |
-| `could not find Packet Tracer's meta tool` (`setup_exapp`) | Usa la opción B del registro manual. |
+| `Cannot launch ExApp...` al pulsar **Launch** | Esperado. El cliente MCP lanza `pktctl`, no PT. Ignora el aviso y usa `status`. |
+| `rejected app id dev.pktctl` | Falta cargar el `.pta`, el secreto no coincide, o PT no salió con **File → Exit**. Repite el Paso 5 con el mismo secreto. |
+| `could not find Packet Tracer's meta tool` (`setup_exapp`) | Usa la opción B del Paso 4. |
 | `does not have the necessary privilege` | El `.pta` se registró con una plantilla vieja. Genera y carga el de la plantilla `v0.2.2`. |
-| `opencode mcp list` muestra `failed` | Revisa la ruta del binario y las variables `PKTCTL_APP_ID` / `PKTCTL_SECRET`. En Windows usa la ruta absoluta al `.exe`. |
-| Claude Desktop no muestra las herramientas de Packet Tracer | JSON inválido (coma sobrante), ruta del binario inexistente o Claude no se cerró del todo (**Quit** desde la bandeja). Revisa los logs de la sección de verificación. |
-| Claude Desktop no arranca `pktctl` en Windows | La ruta del `command` debe ser absoluta y con `\\`. Claude no siempre hereda el `PATH`, por eso `pktctl.exe` sin ruta completa puede no encontrarse. |
+| Claude Desktop no muestra las herramientas | JSON inválido (coma sobrante), ruta inexistente o Claude no se cerró con **Quit**. Revisa el Paso 3A y los logs. |
+| Claude Desktop no arranca `pktctl` en Windows | La ruta del `command` debe ser absoluta y con `\\`. Claude no siempre hereda el `PATH`. |
+| `opencode mcp list` muestra `failed` | Revisa la ruta del binario y `PKTCTL_APP_ID` / `PKTCTL_SECRET`. |
 | Los cambios no aparecen | Ejecuta `fast_forward` y vuelve a consultar; STP/DHCP/OSPF tardan en converger. |
 | PT se cuelga o no responde | Cierra PT normalmente y vuelve a abrirlo. No hace falta reinstalar `pktctl`. |
 
-## Actualizar o desinstalar
+## Actualizar y desinstalar
+
+**Windows:** para actualizar, sustituye `pktctl.exe` por el de un zip nuevo. Para
+desinstalar, borra `C:\Users\<usuario>\pktctl\`, la carpeta
+`%USERPROFILE%\.config\pktctl`, y la entrada `pktctl` de
+`claude_desktop_config.json` o de `opencode.json`. En Packet Tracer, quita el
+registro desde **Extensions → IPC → Configure Apps** (si la lista lo permite; no
+lo he probado en Windows).
 
 **Linux:**
 
@@ -413,11 +499,6 @@ rm -r ~/.config/pktctl
 # y mcpServers.pktctl de ~/.config/Claude/claude_desktop_config.json
 ```
 
-**Windows:** para actualizar, sustituye `pktctl.exe` por el de un zip nuevo.
-Para desinstalar, borra `C:\Users\<usuario>\pktctl\`, la carpeta
-`%USERPROFILE%\.config\pktctl`, y la entrada `pktctl` de
-`%APPDATA%\Claude\claude_desktop_config.json` y de `opencode.json`.
-
-Al cambiar de versión de Packet Tracer, revisa las notas de `pktctl`: la
-versión validada es **9.0.1**. Otras versiones pueden funcionar, pero no están
+Al cambiar de versión de Packet Tracer, revisa las notas de `pktctl`: la versión
+validada es **9.0.1**. Otras versiones pueden funcionar, pero no están
 garantizadas.
