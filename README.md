@@ -35,7 +35,7 @@ la red con comandos de diagnóstico.
 - Guías de las cuatro sesiones: [`SESION-A.md`](SESION-A.md),
   [`SESION-B.md`](SESION-B.md), [`SESION-A-IPV6.md`](SESION-A-IPV6.md) y
   [`SESION-B-IPV6.md`](SESION-B-IPV6.md).
-- Configuraciones de routers y switches para copiar y pegar en `config/`
+- Configuraciones de la **Sesión B** para copiar y pegar en `config/`
   (`R1.txt`…`R3.txt`, `SW1.txt`…`SW3.txt`) y en `config/ipv6/`.
 - Referencias: [`SUBNETEO.md`](SUBNETEO.md) (cálculo VLSM y ejercicios),
   [`COMANDOS.md`](COMANDOS.md) (qué hace cada comando),
@@ -133,10 +133,10 @@ Se regeneran con `python3 tools/build_teoria_lab.py` y
 
 [`MCP-PACKET-TRACER.md`](MCP-PACKET-TRACER.md) explica cómo está configurado
 `pktctl`, el servidor MCP que maneja Packet Tracer desde **Claude Desktop** o
-**Hermes Agent**: crear topologías, cablear, escribir comandos IOS, ejecutar
-ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye los pasos para
-Windows y Linux, el registro `.pta`, ocho ejercicios para montar el laboratorio
-desde cero y la solución de problemas.
+**Hermes** (escritorio o terminal): crear topologías, cablear, escribir comandos
+IOS, ejecutar ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye
+los pasos para Windows y Linux, el registro `.pta`, ocho ejercicios para montar
+el laboratorio desde cero y la solución de problemas.
 
 Hacen falta solo la configuración del cliente (JSON o YAML) y el registro
 [`pktctl.pta`](pktctl.pta), que ya está en el repositorio y sirve en cualquier

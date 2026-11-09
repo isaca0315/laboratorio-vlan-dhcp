@@ -1,8 +1,9 @@
 # MCP de Cisco Packet Tracer (pktctl)
 
-Guía para que **Claude Desktop** o **Hermes Agent** construyan, configuren y
-prueben las redes de este laboratorio dentro de **Cisco Packet Tracer 9.0.1**,
-usando el servidor MCP [`pktctl`](https://github.com/TantiE100/pktctl).
+Guía para que **Claude Desktop** o **Hermes** (escritorio o terminal)
+construyan, configuren y prueben las redes de este laboratorio dentro de
+**Cisco Packet Tracer 9.0.1**, usando el servidor MCP
+[`pktctl`](https://github.com/TantiE100/pktctl).
 
 Para que funcione hacen falta solo dos cosas:
 
@@ -48,7 +49,8 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | `.pta` del repositorio (mismo procedimiento, secreto de práctica) | Generado y comprobado (478 bytes, determinista) | No cargado en Packet Tracer |
 | Ejercicios del Paso 7 (construcción desde cero) | Valores esperados comprobados en `Sesion-A-IPv4.pkt` y `Sesion-B-IPv6.pkt`; A-IPv6 y B-IPv4 salen de las guías | Construcción completa no ejecutada |
 | Bloques JSON y YAML de esta guía | JSON validados; YAML probado con `hermes mcp test` | JSON: mismos bloques; YAML: no probado |
-| Configuración de Hermes (`mcp_servers`, 72 herramientas) | Probado con un `HERMES_HOME` temporal | No probado |
+| Configuración real de Hermes (`mcp_servers`, 72 herramientas) | Probado: `hermes mcp test` y Hermes Desktop | No probado |
+| `status` con la configuración de Hermes y el `.pta` cargado | Probado (`connected: true`, PT 9.0.1) | No probado |
 | Claude Desktop cargando el servidor en la ventana | Pendiente: hay que reiniciar Claude Desktop | No probado |
 | Generación del secreto en PowerShell | No aplica | No probado |
 
@@ -60,7 +62,7 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | Registro ExApp | [`pktctl.pta`](pktctl.pta) (el mismo archivo en cualquier sistema) · copia en `~/pktctl.pta` o `%USERPROFILE%\pktctl.pta` |
 | Secreto IPC | `~/.config/pktctl/secret` (Linux, modo 600, **no versionar**) |
 | App ID | `dev.pktctl` |
-| Config de Hermes | `hermes config edit` → `mcp_servers.pktctl` en `~/.hermes/config.yaml` (Linux/macOS) · `%LOCALAPPDATA%\hermes\config.yaml` (Windows) |
+| Config de Hermes | `hermes config edit` → `mcp_servers.pktctl` en `~/.hermes/config.yaml` (Linux/macOS) · `%LOCALAPPDATA%\hermes\config.yaml` (Windows). La app de escritorio usa el mismo archivo. |
 | Config de Claude Desktop | `~/.config/Claude/claude_desktop_config.json` (Linux) · `%APPDATA%\Claude\claude_desktop_config.json` (Windows) |
 
 `pktctl` habla con Packet Tracer por **PTMP**, el protocolo nativo de
@@ -68,7 +70,7 @@ aplicaciones externas (puertos `39000`–`39009`). Expone 72 herramientas:
 topología, cables, CLI de IOS, DHCP/PCs, servidores, simulación, actividades y
 acceso directo a la API IPC.
 
-> Sigue **un solo cliente**: Claude Desktop (Paso 3A) **o** Hermes Agent (Paso 3B).
+> Sigue **un solo cliente**: Claude Desktop (Paso 3A) **o** Hermes (Paso 3B).
 > No hace falta hacer los dos.
 
 ## Paso 1: descargar pktctl
@@ -237,9 +239,12 @@ barras normales:
 }
 ```
 
-### Paso 3B: Hermes Agent
+### Paso 3B: Hermes (escritorio y terminal)
 
-Hermes Agent (Nous Research) guarda los servidores MCP en `mcp_servers`, dentro
+La app de escritorio y `hermes chat` comparten el mismo `config.yaml`: se
+configura una sola vez y sirve para los dos.
+
+Hermes (Nous Research) guarda los servidores MCP en `mcp_servers`, dentro
 de `config.yaml`. La forma segura de abrir el archivo correcto es:
 
 ```sh
@@ -355,7 +360,7 @@ minuto y no depende de `setup_exapp`.
    ```sh
    mkdir -p ~/pktctl-registro && cd ~/pktctl-registro
    curl -fsSL https://raw.githubusercontent.com/TantiE100/pktctl/v0.2.2/crates/pktctl/assets/pktctl-exapp.xml -o pktctl-exapp.xml
-   SECRET=$(cat ~/.config/pktctl/secret)
+   SECRET="PEGA-AQUI-TU-SECRETO"   # el del Paso 2 (el de práctica o el tuyo)
    sed -i "s|REPLACE_WITH_YOUR_SECRET|$SECRET|" pktctl-exapp.xml
    "<ruta a meta>" pktctl.pta pktctl-exapp.xml
    rm pktctl-exapp.xml
@@ -429,10 +434,11 @@ número de dispositivos y enlaces abiertos.
 | `rejected app id dev.pktctl` | El registro no está cargado o el secreto no coincide | Repite el Paso 5 y usa el mismo secreto en el cliente y en el `.pta` |
 | `Cannot launch ExApp...` al pulsar **Launch** | Es lo esperado | No pulses Launch; usa `status` |
 
-Los logs del servidor están en `%APPDATA%\Claude\logs\mcp-server-pktctl.log`
-(Windows) o `~/.config/Claude/logs/mcp-server-pktctl.log` (Linux). Esa convención
-de nombres es la de los otros servidores de esta instalación; en `pktctl` todavía
-no la he visto aparecer.
+En Claude Desktop, los logs del servidor están en
+`%APPDATA%\Claude\logs\mcp-server-pktctl.log` (Windows) o
+`~/.config/Claude/logs/mcp-server-pktctl.log` (Linux); esa es la convención de
+esta instalación. En Hermes, revisa `~/.hermes/logs/agent.log` y
+`~/.hermes/logs/mcp-stderr.log` (`%LOCALAPPDATA%\hermes\logs\` en Windows).
 
 ## Paso 7: construir el laboratorio desde cero
 
@@ -637,7 +643,7 @@ Notas de la API que conviene conocer:
 |-------------|----------|
 | `status` | Saber si PT responde y qué red hay abierta |
 | `list_devices`, `list_links`, `list_ports` | Descubrir nombres y puertos antes de actuar |
-| `add_device`, `add_link`, `remove_device` | Construir o corregir la topología |
+| `add_device`, `connect`, `remove_device` | Construir o corregir la topología |
 | `run_cli` | Escribir comandos IOS en routers y switches |
 | `configure_host`, `configure_host_ipv6`, `configure_dhcp_server` | Direcciones, DHCP y servicios de los hosts |
 | `run_host_command` | Ejecutar `ping`, `tracert` o `ipconfig` en un PC |
@@ -669,11 +675,13 @@ Notas de la API que conviene conocer:
 | `Packet Tracer is not reachable` | PT cerrado, o IPC en un puerto fuera de `39000`–`39009`. Abre PT y revisa **Extensions → IPC → Options**. |
 | `Cannot launch ExApp...` al pulsar **Launch** | Esperado. El cliente MCP lanza `pktctl`, no PT. Ignora el aviso y usa `status`. |
 | `rejected app id dev.pktctl` | Falta cargar el `.pta`, el secreto no coincide, o PT no salió con **File → Exit**. Repite el Paso 5 con el mismo secreto. |
-| `could not find Packet Tracer's meta tool` (`setup_exapp`) | Usa la opción B del Paso 4. |
+| `could not find Packet Tracer's meta tool` (`setup_exapp`) | Usa la opción C del Paso 4 (registro manual con `meta`). |
 | `does not have the necessary privilege` | El `.pta` se registró con una plantilla vieja. Genera y carga el de la plantilla `v0.2.2`. |
 | Claude Desktop no muestra las herramientas | JSON inválido (coma sobrante), ruta inexistente o Claude no se cerró con **Quit**. Revisa el Paso 3A y los logs. |
 | Claude Desktop no arranca `pktctl` en Windows | La ruta del `command` debe ser absoluta y con `\\`. Claude no siempre hereda el `PATH`. |
 | `hermes mcp test pktctl` muestra `failed` | Revisa la ruta del binario y `PKTCTL_APP_ID` / `PKTCTL_SECRET`. |
+| `hermes mcp list` dice `No MCP servers configured` o avisa de un error en `config.yaml` | El YAML no es válido: JSON pegado, sangría o dos puntos. Ejecuta `hermes config check` y corrige la línea que indique. |
+| Hermes Desktop no muestra `pktctl` | Usa el mismo `config.yaml` que la terminal. Si estaba abierta al editarlo, reinicia la app; en una sesión abierta, `/reload-mcp`. |
 | Los cambios no aparecen | Ejecuta `fast_forward` y vuelve a consultar; STP/DHCP/OSPF tardan en converger. |
 | PT se cuelga o no responde | Cierra PT normalmente y vuelve a abrirlo. No hace falta reinstalar `pktctl`. |
 

@@ -104,9 +104,9 @@ siguiente empezaría en `.60`, que es múltiplo de 16 y de 4 → asignación vá
 
 ## Parte 3 — Configurar los 3 routers
 
-> Los comandos completos de los tres routers están en `config/R1.txt`,
-> `config/R2.txt` y `config/R3.txt`. Puedes copiarlos y pegarlos en la CLI del
-> router (`clic derecho → Paste`) o escribirlos a mano.
+> Los comandos de esta sesión están escritos en cada paso. **No uses**
+> `config/R1.txt` ni los demás archivos de `config/`: son de la **Sesión B**
+> (VLAN 20 y OSPF) y rompen este laboratorio.
 
 ### Paso 3.1 — R1 (Sede A / LAN-A)
 
