@@ -25,7 +25,7 @@ sistema operativo: sirve igual en Windows, Linux y macOS.
 6. [Conseguir el registro `.pta`](#paso-4-conseguir-el-registro-pta)
 7. [Cargar el registro en Packet Tracer](#paso-5-cargar-el-registro-en-packet-tracer)
 8. [Comprobar la conexión](#paso-6-comprobar-la-conexión)
-9. [Cómo se usa en el laboratorio](#paso-7-cómo-se-usa-en-el-laboratorio)
+9. [Práctica guiada con el MCP](#paso-7-práctica-guiada-con-el-mcp)
 10. [Seguridad](#seguridad)
 11. [Problemas típicos](#problemas-típicos)
 12. [Actualizar y desinstalar](#actualizar-y-desinstalar)
@@ -424,37 +424,123 @@ Los logs del servidor están en `%APPDATA%\Claude\logs\mcp-server-pktctl.log`
 de nombres es la de los otros servidores de esta instalación; en `pktctl` todavía
 no la he visto aparecer.
 
-## Paso 7: cómo se usa en el laboratorio
+## Paso 7: práctica guiada con el MCP
 
-Abre el `.pkt` que quieras trabajar y pide las acciones en lenguaje natural. El
-agente descubre los nombres con `list_devices`, ejecuta comandos con `run_cli` y
-usa `fast_forward` después de cablear o configurar DHCP/OSPF para que STP, DHCP y
-routing converjan antes de probar.
+Ocho ejercicios cortos, **en orden**, sobre una **copia** del `.pkt`. Sirven para
+las cuatro sesiones: cambia el nombre del archivo y usa la columna que
+corresponda.
 
-Ejemplos con los archivos de `packet-tracer/`:
+| Tarea | IPv4 | IPv6 |
+|-------|------|------|
+| Ver direcciones | `show ip interface brief` | `show ipv6 interface brief` |
+| Ver rutas | `show ip route` | `show ipv6 route` |
+| Ver DHCP | `show ip dhcp binding` | `show ipv6 dhcp binding` |
+| Ver vecinos | `show ip ospf neighbor` | `show ipv6 ospf neighbor` |
 
-**Sesión A (IPv4 o IPv6)**
+**Cómo se pide.** Un prompt útil tiene cuatro partes: qué archivo abrir, qué
+comprobar, en qué formato devolverlo y qué **no** tocar. Escribe tu predicción
+antes de enviarlo: el objetivo es que detectes si el agente se equivoca.
 
-> Abre `packet-tracer/Sesion-A-IPv6.pkt`, comprueba con `show ipv6 interface brief`
-> que R1, R2 y R3 tienen sus direcciones y que `ipconfig` de PC-A1 muestra un
-> `/64` por DHCPv6.
+### 1. Reconocer la red (sin cambios)
 
-> Desde PC-A1 haz ping a PC-B1 y PC-C1. Si falla, revisa `show ipv6 route` en los
-> tres routers.
+**Predice:** cuántos routers, switches y PCs hay, y cuántos enlaces.
 
-**Sesión B (hub-and-spoke)**
+> Abre `packet-tracer/Sesion-A-IPv4.pkt` y no cambies nada. Dime la versión de
+> Packet Tracer, cuántos routers, switches y PCs hay, y cuántos enlaces. Preséntalo
+> como una lista con los nombres de los dispositivos.
 
-> Abre `packet-tracer/Sesion-B-IPv6.pkt` y verifica que R1 vea dos vecinos OSPFv3
-> en `FULL` con `show ipv6 ospf neighbor`.
+**Comprueba:** 3 routers, 3 switches, 9 PCs y 15 enlaces (`status` responde
+`connected: true`). Si el agente cuenta mal, no confíes en el resto.
 
-> Apaga `GigabitEthernet0/1` de R1, espera la convergencia y comprueba desde
-> PC-B1 con `tracert` que el camino pasa por R3. Después vuelve a encenderla.
+### 2. Leer el direccionamiento
 
-**Construir desde cero**
+**Predice:** las direcciones de R1 y cuáles deben estar `up`.
 
-> Crea la topología de la Sesión A: tres routers 2911, tres switches 2960 y nueve
-> PCs. Cablea según `SESION-A.md`, guarda como `sesion-a-nueva.pkt` y aplica las
-> configuraciones de `config/`.
+> En R1, muéstrame todas las interfaces con su dirección y estado. Marca las que
+> estén down y no cambies la configuración.
+
+**Comprueba:** Gi0/0 = .1/28, Gi0/1 = .49/30, Gi0/2 = .58/30, todas `up/up`. En la
+Sesión B aparece además `Gi0/0.20` = .65/28.
+
+### 3. Comprobar el DHCP
+
+**Predice:** cuántas concesiones debe haber y en qué rango.
+
+> En R2, lista las concesiones DHCP y dime qué PC tiene cada IP. No renueves ni
+> liberes ninguna.
+
+**Comprueba:** todas las concesiones caen dentro de los rangos de sus pools
+(Sesión A: .22–.30; Sesión B: VLAN 10 .22–.30 y VLAN 20 .86–.94). Compara la MAC
+de cada lease con la del PC.
+
+### 4. Seguir el camino de un paquete
+
+**Predice:** por qué router sale el paquete y cuántos saltos hay.
+
+> Desde PC-A1 haz ping a PC-C1 y luego un tracert. Dime el primer salto, el camino
+> completo y si coincide con las rutas de la tabla.
+
+**Comprueba:** ping OK y el camino pasa por R1 y R3 (LAN-A → LAN-C). Un salto
+inesperado suele ser una ruta mal escrita.
+
+### 5. Interpretar la tabla de rutas
+
+**Predice:** qué código (`S`, `O`, `C`) y qué siguiente salto debe usar R1 para
+llegar a 192.168.2.32/28.
+
+> Muéstrame la tabla de rutas de R1 y explica qué entrada usa para llegar a
+> 192.168.2.32/28. Indica el código, el siguiente salto y la interfaz de salida.
+
+**Comprueba:** en la Sesión A debe ser `S` por .57 (Gi0/2). En la Sesión B, `O`
+con costo. Si sale `S` en la Sesión B, OSPF no convergió.
+
+### 6. Fallo controlado
+
+**Predice:** qué debería pasar según el tipo de enrutamiento de tu sesión.
+
+*Sesión A (rutas estáticas):*
+
+> En R2 apaga GigabitEthernet0/2, ejecuta fast_forward y comprueba desde PC-B1 si
+> llega a PC-C1. Después vuelve a encender la interfaz. No guardes el archivo.
+
+**Comprueba:** el ping **falla**. La ruta estática no se adapta: ese es su límite.
+
+*Sesión B (OSPF):*
+
+> En R1 apaga GigabitEthernet0/1, ejecuta fast_forward y comprueba desde PC-B1 si
+> llega a PC-C1 y por qué camino. Después vuelve a encender la interfaz. No
+> guardes el archivo.
+
+**Comprueba:** el ping **sigue funcionando** y el camino pasa por R3. Esa es la
+redundancia de la Sesión B y la pregunta 5 de la rúbrica.
+
+### 7. Diagnóstico a ciegas
+
+**Prepara el fallo:** cambia tú una IP (por ejemplo, el gateway de una LAN) y no
+digas cuál.
+
+> Hay un fallo de conectividad entre PC-B1 y PC-C1. Diagnostícalo leyendo las
+> interfaces y las tablas de rutas, explica la causa y propón la corrección. No
+> cambies nada todavía; espera mi confirmación.
+
+**Comprueba:** el agente debe encontrar la interfaz cambiada y proponer la IP
+correcta. Si acierta, pide que la corrija y verifica con un ping. Si no acierta,
+corrige tú y explica qué pista faltó en el prompt.
+
+### 8. Reto de VLSM
+
+**Predice:** qué subred libre usarías y por qué no vale la primera dirección libre.
+
+> Sin cambiar nada, planifica una cuarta LAN de 10 hosts dentro de
+> 192.168.2.0/24. Indica red, máscara, gateway, rango DHCP y el bloque que
+> elegiste. No la configures.
+
+**Comprueba:** debe ser un `/28` alineado. En la **Sesión A** el primero libre es
+192.168.2.64/28; en la **Sesión B**, 192.168.2.112/28 (gateway .113, DHCP
+.118–.126). Si propone .60 o .114, no alineó el bloque.
+
+> Los ejercicios 6 y 7 modifican la red. Trabaja sobre una copia y no guardes el
+> `.pkt` original.
 
 ### Archivos generados con pktctl
 

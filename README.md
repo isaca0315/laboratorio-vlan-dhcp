@@ -135,7 +135,8 @@ Se regeneran con `python3 tools/build_teoria_lab.py` y
 `pktctl`, el servidor MCP que maneja Packet Tracer desde **Claude Desktop** u
 **OpenCode**: crear topologías, cablear, escribir comandos IOS, ejecutar
 ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye los pasos para
-Windows y Linux, el registro `.pta` y la solución de problemas.
+Windows y Linux, el registro `.pta`, ocho ejercicios de práctica y la solución de
+problemas.
 
 Hacen falta solo el JSON del cliente y el registro [`pktctl.pta`](pktctl.pta),
 que ya está en el repositorio y sirve en cualquier sistema operativo. Requiere
