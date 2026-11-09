@@ -9,6 +9,9 @@ Para que funcione hacen falta solo dos cosas:
 1. **El JSON** del servidor en la configuración del cliente.
 2. **El registro `pktctl.pta`**, cargado en Packet Tracer una sola vez.
 
+El repositorio incluye [`pktctl.pta`](pktctl.pta) ya generado. No depende del
+sistema operativo: sirve igual en Windows, Linux y macOS.
+
 > `pktctl` no reemplaza a Packet Tracer: lo maneja. Necesita la ventana de Packet
 > Tracer abierta y el `.pkt` cargado. No funciona en modo headless.
 
@@ -17,9 +20,9 @@ Para que funcione hacen falta solo dos cosas:
 1. [Estado de la verificación](#estado-de-la-verificación)
 2. [Qué instala](#qué-instala)
 3. [Descargar pktctl](#paso-1-descargar-pktctl)
-4. [Generar el secreto](#paso-2-generar-el-secreto)
+4. [Elegir el secreto](#paso-2-elegir-el-secreto)
 5. [Configurar el cliente](#paso-3-configurar-el-cliente)
-6. [Generar el registro `.pta`](#paso-4-generar-el-registro-pta)
+6. [Conseguir el registro `.pta`](#paso-4-conseguir-el-registro-pta)
 7. [Cargar el registro en Packet Tracer](#paso-5-cargar-el-registro-en-packet-tracer)
 8. [Comprobar la conexión](#paso-6-comprobar-la-conexión)
 9. [Cómo se usa en el laboratorio](#paso-7-cómo-se-usa-en-el-laboratorio)
@@ -41,6 +44,7 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | Respuesta con secreto incorrecto (`rejected app id`) | Probado | No probado |
 | `setup_exapp` | **Falla** en esta instalación (ver Paso 4) | No probado |
 | Registro manual con `meta` (el `.pta` sale byte a byte igual al registrado) | Probado | No probado |
+| `.pta` del repositorio (mismo procedimiento, secreto de práctica) | Generado y comprobado (478 bytes, determinista) | No cargado en Packet Tracer |
 | Bloques JSON de esta guía | Probados (4 de 4) | Probados (son los mismos) |
 | `opencode mcp list` → `pktctl connected` | Probado | No probado |
 | Claude Desktop cargando el servidor en la ventana | Pendiente: hay que reiniciar Claude Desktop | No probado |
@@ -51,7 +55,7 @@ lógica y con los datos del zip oficial, pero **no se ha ejecutado en Windows**.
 | Componente | Ruta / valor |
 |------------|--------------|
 | Binario | `~/.local/bin/pktctl` (Linux) · `C:\Users\<usuario>\pktctl\pktctl.exe` (Windows), v0.2.2 |
-| Registro ExApp | `~/.config/pktctl/pktctl.pta` (Linux) · `%USERPROFILE%\.config\pktctl\pktctl.pta` (Windows) |
+| Registro ExApp | [`pktctl.pta`](pktctl.pta) (el mismo archivo en cualquier sistema) · copia en `~/pktctl.pta` o `%USERPROFILE%\pktctl.pta` |
 | Secreto IPC | `~/.config/pktctl/secret` (Linux, modo 600, **no versionar**) |
 | App ID | `dev.pktctl` |
 | Config de OpenCode | `~/.config/opencode/opencode.json` → `mcp.servers.pktctl` (Linux) · `%USERPROFILE%\.config\opencode\opencode.json` (Windows) |
@@ -109,14 +113,29 @@ pktctl --version
 En macOS el archivo es `pktctl-$VERSION-x86_64-apple-darwin.tar.gz`
 (o `aarch64-apple-darwin` en Apple Silicon).
 
-## Paso 2: generar el secreto
+## Paso 2: elegir el secreto
 
-El secreto es una clave aleatoria que comparten el cliente y Packet Tracer.
-Tiene que ser **el mismo** en todos los sitios donde lo pegues.
+El secreto es una clave que comparten el cliente y Packet Tracer. Tiene que ser
+**el mismo** en todos los sitios donde lo pegues.
 
-### Windows
+### Opción rápida: el secreto de práctica
 
-En PowerShell:
+Si vas a usar el [`pktctl.pta`](pktctl.pta) del repositorio, no generes nada.
+El secreto con el que se creó es:
+
+```text
+eb9a6706129c3c6d40979a5540e110e76773eba055862c33
+```
+
+Es una clave **publicada a propósito** para las prácticas. No la reutilices para
+otra cosa y no la cambies: si la cambias, el `.pta` del repositorio deja de
+coincidir y Packet Tracer responde `rejected app id`.
+
+### Opción propia: generar el secreto
+
+Solo si vas a generar tu propio `.pta` (Paso 4, opciones B o C).
+
+**Windows**, en PowerShell:
 
 ```powershell
 $bytes = New-Object byte[] 24
@@ -131,7 +150,7 @@ necesitas en el Paso 3 y en el Paso 4.
 > La variable `$secret` solo existe en esa ventana de PowerShell. Si la cierras,
 > genera un secreto nuevo y cámbialo en todos los sitios donde lo pegaste.
 
-### Linux
+**Linux:**
 
 ```sh
 SECRET=$(openssl rand -hex 24)
@@ -162,8 +181,8 @@ Haz **solo una** de estas dos opciones.
    > Si no encuentras la carpeta: Claude Desktop → **Settings → Developer →
    > Edit Config**. Ese botón abre el mismo archivo.
 
-4. Dentro de `mcpServers`, añade la entrada `pktctl`. Sustituye `<usuario>` y
-   `PEGA-AQUI-TU-SECRETO`. Las barras invertidas van dobles:
+4. Dentro de `mcpServers`, añade la entrada `pktctl`. Sustituye `<usuario>` por
+   tu nombre de usuario. Las barras invertidas van dobles:
 
    ```json
    {
@@ -173,12 +192,15 @@ Haz **solo una** de estas dos opciones.
          "args": [],
          "env": {
            "PKTCTL_APP_ID": "dev.pktctl",
-           "PKTCTL_SECRET": "PEGA-AQUI-TU-SECRETO"
+           "PKTCTL_SECRET": "eb9a6706129c3c6d40979a5540e110e76773eba055862c33"
          }
        }
      }
    }
    ```
+
+   Ese es el secreto de práctica del Paso 2. Si generaste uno propio, ponlo en
+   `PKTCTL_SECRET`: tiene que coincidir con el `.pta` que cargues.
 
    Si ya tenías otros servidores, añade solo la entrada `pktctl` con su coma y no
    borres las demás.
@@ -206,7 +228,7 @@ barras normales:
       "args": [],
       "env": {
         "PKTCTL_APP_ID": "dev.pktctl",
-        "PKTCTL_SECRET": "el-secreto-que-generaste"
+        "PKTCTL_SECRET": "eb9a6706129c3c6d40979a5540e110e76773eba055862c33"
       }
     }
   }
@@ -229,7 +251,7 @@ añade `pktctl` dentro de `mcp.servers`, no dentro de `mcpServers`:
         "command": ["C:\\Users\\<usuario>\\pktctl\\pktctl.exe"],
         "environment": {
           "PKTCTL_APP_ID": "dev.pktctl",
-          "PKTCTL_SECRET": "PEGA-AQUI-TU-SECRETO"
+          "PKTCTL_SECRET": "eb9a6706129c3c6d40979a5540e110e76773eba055862c33"
         }
       }
     }
@@ -244,7 +266,7 @@ En Linux/macOS también puedes usar la CLI:
 ```sh
 opencode mcp add pktctl --global \
   --env PKTCTL_APP_ID=dev.pktctl \
-  --env "PKTCTL_SECRET=$SECRET" \
+  --env "PKTCTL_SECRET=eb9a6706129c3c6d40979a5540e110e76773eba055862c33" \
   -- "$HOME/.local/bin/pktctl"
 ```
 
@@ -256,12 +278,38 @@ opencode mcp list
 
 **Debe mostrar** `pktctl` con estado `connected`.
 
-## Paso 4: generar el registro `.pta`
+## Paso 4: conseguir el registro `.pta`
 
 Packet Tracer solo acepta aplicaciones registradas. El registro es un archivo
-`pktctl.pta` que se crea **una vez**. Hay dos formas.
+`pktctl.pta` que se crea **una vez**. Hay tres formas.
 
-### Opción A: `setup_exapp` (desde el cliente)
+### Opción A: el `.pta` del repositorio (recomendado)
+
+Descarga [`pktctl.pta`](pktctl.pta) y guárdalo en tu carpeta de usuario. Está
+creado con el secreto de práctica del Paso 2 y el App ID `dev.pktctl`.
+
+No depende del sistema operativo: el **mismo archivo** sirve en Windows, Linux y
+macOS.
+
+**Windows**, en PowerShell:
+
+```powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/isaca0315/laboratorio-vlan-dhcp/main/pktctl.pta" -OutFile "$env:USERPROFILE\pktctl.pta"
+Test-Path "$env:USERPROFILE\pktctl.pta"
+```
+
+**Linux:**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/isaca0315/laboratorio-vlan-dhcp/main/pktctl.pta -o ~/pktctl.pta
+ls -l ~/pktctl.pta
+```
+
+Comprueba que pesa **478 bytes**. Es un archivo binario y cifrado: no se puede
+editar a mano ni revisar su contenido. Si el profesor cambia el secreto, pide el
+`.pta` nuevo.
+
+### Opción B: `setup_exapp` (desde el cliente)
 
 Pide al agente **«ejecuta setup_exapp»**. Escribe el `.pta` en `PKTCTL_SETUP_DIR`
 o, por defecto, en `~/.config/pktctl/` (Linux) o `%USERPROFILE%\.config\pktctl\`
@@ -272,14 +320,14 @@ Test-Path "$env:USERPROFILE\.config\pktctl\pktctl.pta"
 ```
 
 **Debe responder** `True`. Si responde `could not find Packet Tracer's meta
-tool`, usa la opción B.
+tool`, usa la opción C.
 
 > **En Linux con la instalación de esta clase no funciona.** `setup_exapp` solo
 > busca `meta` en `<carpeta>/extensions/`, y en esta instalación `meta` está en
 > `bin/` dentro de un AppImage montado en `/tmp` (la ruta cambia en cada
-> arranque). Por eso se responde con la opción B.
+> arranque). Por eso se responde con la opción C.
 
-### Opción B: manual con `meta` (probada en Linux)
+### Opción C: manual con `meta` (probada en Linux)
 
 `meta` es la herramienta de Packet Tracer que cifra la plantilla XML. Cuesta un
 minuto y no depende de `setup_exapp`.
@@ -335,10 +383,12 @@ No lo compartas.
 Este paso se hace **una sola vez**.
 
 1. Abre **Cisco Packet Tracer 9.0.1**.
-2. Ve a **Extensions → IPC → Configure Apps → Add** y selecciona el `.pta`
-   (`%USERPROFILE%\.config\pktctl\pktctl.pta` o
-   `~/.config/pktctl/pktctl.pta`). Si el diálogo no muestra archivos ocultos,
-   escribe la ruta completa a mano.
+2. Ve a **Extensions → IPC → Configure Apps → Add** y selecciona el `.pta`:
+   - Opción A: `%USERPROFILE%\pktctl.pta` o `~/pktctl.pta`.
+   - Opciones B y C: `%USERPROFILE%\.config\pktctl\pktctl.pta` o
+     `~/.config/pktctl/pktctl.pta`.
+
+   Si el diálogo no muestra archivos ocultos, escribe la ruta completa a mano.
 3. Pulsa **Ok**. La app aparece en la lista como `pktctl`.
 4. Cierra Packet Tracer con **File → Exit**. No lo cierres con la X, con `kill`
    ni con el Administrador de tareas: solo al salir normalmente guarda la lista
@@ -448,8 +498,10 @@ Notas de la API que conviene conocer:
 
 ## Seguridad
 
-- El secreto da **control total** de Packet Tracer. No lo subas al repo ni lo
-  pegues en un chat.
+- El secreto da **control total** de Packet Tracer. El de práctica
+  (`eb9a…c33`) está publicado en este repositorio a propósito: sirve solo para
+  las prácticas. No lo reutilices en un equipo o una red que no sean del
+  laboratorio.
 - El secreto queda en claro en la config del cliente (`claude_desktop_config.json`
   y `opencode.json`) y en el XML temporal del registro manual. Mantén esos
   archivos privados. En Linux, `claude_desktop_config.json` queda en modo `600`.

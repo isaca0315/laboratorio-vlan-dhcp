@@ -137,8 +137,9 @@ Se regeneran con `python3 tools/build_teoria_lab.py` y
 ping/traceroute y verificar DHCP y OSPF sin usar el ratón. Incluye los pasos para
 Windows y Linux, el registro `.pta` y la solución de problemas.
 
-Hacen falta solo el JSON del cliente y el registro `.pta`. Requiere Packet
-Tracer 9.0.1 abierto.
+Hacen falta solo el JSON del cliente y el registro [`pktctl.pta`](pktctl.pta),
+que ya está en el repositorio y sirve en cualquier sistema operativo. Requiere
+Packet Tracer 9.0.1 abierto.
 
 ## Rúbrica global (100 puntos)
 
